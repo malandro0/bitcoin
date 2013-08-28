@@ -520,7 +520,7 @@ int64 CTransaction::GetMinFee(unsigned int nBlockSize, bool fAllowFree,
 
 
 bool CTxMemPool::accept_new(CTxDB& txdb, const CTransaction &tx, bool fCheckInputs, bool fLimitFree,
-                        bool* pfMissingInputs)
+                        bool* pfMissingInputs, bool fRejectInsaneFee)
 {
     if (pfMissingInputs)
         *pfMissingInputs = false;
@@ -636,6 +636,11 @@ bool CTxMemPool::accept_new(CTxDB& txdb, const CTransaction &tx, bool fCheckInpu
             }
         }
 
+        if (fRejectInsaneFee && nFees > MIN_RELAY_TX_FEE * 10000)
+            return error("CTxMemPool::accept() : insane fees %s, %"PRI64d" > %"PRI64d,
+                         hash.ToString().c_str(),
+                         nFees, MIN_RELAY_TX_FEE * 10000);
+
         // Check against previous transactions
         // This is done last to help prevent CPU exhaustion denial-of-service attacks.
         if (!tx.ConnectInputs(mapInputs, mapUnused, CDiskTxPos(1,1,1), pindexBest, false, false))
@@ -666,9 +671,9 @@ bool CTxMemPool::accept_new(CTxDB& txdb, const CTransaction &tx, bool fCheckInpu
     return true;
 }
 
-bool CTransaction::AcceptToMemoryPool_new(CTxDB& txdb, bool fCheckInputs, bool fLimitFree, bool* pfMissingInputs) const
+bool CTransaction::AcceptToMemoryPool_new(CTxDB& txdb, bool fCheckInputs, bool fLimitFree, bool* pfMissingInputs, bool fRejectInsaneFee) const
 {
-    return mempool.accept_new(txdb, *this, fCheckInputs, fLimitFree, pfMissingInputs);
+    return mempool.accept_new(txdb, *this, fCheckInputs, fLimitFree, pfMissingInputs, fRejectInsaneFee);
 }
 
 bool CTxMemPool::addUnchecked(const uint256& hash, const CTransaction &tx)

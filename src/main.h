@@ -641,7 +641,7 @@ public:
 
     // Try to accept this transaction into the memory pool
     // AcceptToMemoryPool(txdb, fCheckInputs=true, pfMissingInputs=NULL) => AcceptToMemoryPool_new(txdb, fCheckInputs, ?, pfMissingInputs)
-    bool AcceptToMemoryPool_new(CTxDB& txdb, bool fCheckInputs=true, bool fLimitFree = true, bool* pfMissingInputs=NULL) const;
+    bool AcceptToMemoryPool_new(CTxDB& txdb, bool fCheckInputs=true, bool fLimitFree = true, bool* pfMissingInputs=NULL, bool fRejectInsaneFee = false) const;
 
 protected:
     const CTxOut& GetOutputFor(const CTxIn& input, const MapPrevTx& inputs) const;
@@ -1363,7 +1363,7 @@ public:
 
     // accept(txdb, tx, fCheckInputs, pfMissingInputs) => accept_new(txdb, tx, fCheckInputs, ?, pfMissingInputs)
     bool accept_new(CTxDB& txdb, const CTransaction &tx,
-                bool fCheckInputs, bool fLimitFree, bool* pfMissingInputs);
+                bool fCheckInputs, bool fLimitFree, bool* pfMissingInputs, bool fRejectInsaneFee = false);
     bool addUnchecked(const uint256& hash, const CTransaction &tx);
     bool remove(CTransaction &tx, bool fRecursive = false);
     void clear();
