@@ -61,7 +61,7 @@ make
 
 Boost
 -----
-DOS prompt:
+MSYS shell:
 downloaded boost jam 3.1.18
 cd \boost-1.50.0-mgw
 bjam toolset=gcc --build-type=complete stage
@@ -78,7 +78,7 @@ cp *.h miniupnpc/
 
 Bitcoin
 -------
-DOS prompt:
+MSYS shell:
 cd \bitcoin\src
 mingw32-make -f makefile.mingw
 strip bitcoind.exe
