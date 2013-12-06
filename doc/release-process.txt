@@ -8,7 +8,7 @@
 
 * tag version in git
 
-   git tag -a v0.5.1
+   git tag -s v0.5.1
 
 * write release notes.  git shortlog helps a lot:
 
