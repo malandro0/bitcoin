@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2012 The Bitcoin developers
+// Copyright (c) 2009-2014 The Bitcoin developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -34,6 +34,7 @@ namespace Checkpoints
         (216116, uint256("0x00000000000001b4f4b433e81ee46494af945cf96014816a4e2370f11b23df4e"))
         (225430, uint256("0x00000000000001c108384350f74090433e7fcf79a606b8e797f065b130575932"))
         (250000, uint256("0x000000000000003887df1f29024b06fc2200b55f8af8f35453d7be294df2d214"))
+        (279000, uint256("0x0000000000000001ae8c72a0b0c301f67e3afca10e819efa9041e458e9bd7e40"))
         ;
 
     static MapCheckpoints mapCheckpointsTestnet =
