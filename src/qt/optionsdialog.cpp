@@ -130,9 +130,12 @@ void OptionsDialog::setModel(OptionsModel *model)
 void OptionsDialog::setMapper()
 {
     /* Main */
-    mapper->addMapping(ui->transactionFee, OptionsModel::Fee);
     mapper->addMapping(ui->bitcoinAtStartup, OptionsModel::StartAtStartup);
     mapper->addMapping(ui->detachDatabases, OptionsModel::DetachDatabases);
+
+    /* Wallet */
+    mapper->addMapping(ui->transactionFee, OptionsModel::Fee);
+    mapper->addMapping(ui->spendZeroConfChange, OptionsModel::SpendZeroConfChange);
 
     /* Network */
     mapper->addMapping(ui->mapPortUpnp, OptionsModel::MapPortUPnP);

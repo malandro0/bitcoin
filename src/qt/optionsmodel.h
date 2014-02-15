@@ -34,6 +34,7 @@ public:
         DisplayAddresses,  // bool
         DetachDatabases,   // bool
         Language,          // QString
+        SpendZeroConfChange,    // bool
         OptionIDRowCount,
     };
 
