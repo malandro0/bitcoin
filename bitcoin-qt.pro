@@ -45,7 +45,7 @@ QMAKE_LFLAGS *= -fstack-protector-all "--param ssp-buffer-size=1"
 win32:QMAKE_LFLAGS *= -Wl,--dynamicbase -Wl,--nxcompat
 
 # use: qmake "USE_QRCODE=1"
-# libqrencode (http://fukuchi.org/works/qrencode/index.en.html) must be installed for support
+# libqrencode (http://fukuchi.org/works/qrencode/) must be installed for support
 contains(USE_QRCODE, 1) {
     message(Building with QRCode support)
     DEFINES += USE_QRCODE
