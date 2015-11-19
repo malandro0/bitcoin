@@ -1160,3 +1160,66 @@ UniValue importmulti(const JSONRPCRequest& mainRequest)
 
     return response;
 }
+
+UniValue rescanblockchain(const JSONRPCRequest& request)
+{
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    if (request.fHelp || request.params.size() > 2) {
+        throw std::runtime_error(
+            "rescanblockchain (\"startheight\") (\"stopheight\")\n"
+            "\nRescan the local blockchain for wallet related transactions.\n"
+            "\nArguments:\n"
+            "1. \"startheight\"    (number, optional) blockheight where the rescan should start\n"
+            "2. \"stopheight\"     (number, optional) blockheight where the rescan should stop\n"
+            "\nExamples:\n"
+            + HelpExampleCli("rescanblockchain", "\"100000 120000\"")
+            + HelpExampleRpc("rescanblockchain", "\"100000 120000\"")
+            );
+    }
+
+    LOCK2(cs_main, pwallet->cs_wallet);
+
+    CBlockIndex *pindexStart = NULL;
+    CBlockIndex *pindexStop = NULL;
+    if (request.params[0].isNum()) {
+        pindexStart = chainActive[request.params[0].get_int()];
+    }
+    if (!pindexStart) {
+        pindexStart = chainActive.Genesis();
+    }
+
+    if (request.params[1].isNum()) {
+        pindexStop = chainActive[request.params[1].get_int()];
+    }
+
+    if (pindexStop && pindexStop->nHeight < pindexStart->nHeight) {
+        // Flip the parameters to the expected order
+        CBlockIndex * const tmp = pindexStart;
+        pindexStart = pindexStop;
+        pindexStop = tmp;
+    }
+
+    // We can't rescan beyond non-pruned blocks, stop and throw an error
+    if (fPruneMode) {
+        int nHeight = pindexStart->nHeight;
+        while ((!pindexStop) || nHeight <= pindexStop->nHeight) {
+            CBlockIndex * const block = chainActive[nHeight];
+            if (!block) {
+                break;
+            }
+            if (!(block->pprev->nStatus & BLOCK_HAVE_DATA)) {
+                throw JSONRPCError(RPC_WALLET_ERROR, "Can't rescan beyond pruned data. Use RPC call getblockchaininfo to determine your pruned height.");
+            }
+        }
+    }
+
+    if (pwallet) {
+        pwallet->ScanForWalletTransactions(pindexStart, pindexStop, true);
+    }
+
+    return NullUniValue;
+}
