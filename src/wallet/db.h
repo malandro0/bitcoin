@@ -20,6 +20,9 @@
 
 #include <db_cxx.h>
 
+static const unsigned int DEFAULT_WALLET_DBLOGSIZE = 100;
+static const bool DEFAULT_WALLET_PRIVDB = true;
+
 extern unsigned int nWalletDBUpdated;
 
 class CDBEnv
@@ -27,7 +30,9 @@ class CDBEnv
 private:
     bool fDbEnvInit;
     bool fMockDb;
-    boost::filesystem::path path;
+    // Don't change into boost::filesystem::path, as that can result in
+    // shutdown problems/crashes caused by a static initialized internal pointer.
+    std::string strPath;
 
     void EnvShutdown();
 

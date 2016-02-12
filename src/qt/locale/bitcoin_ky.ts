@@ -25,6 +25,9 @@
     <name>AskPassphraseDialog</name>
     </context>
 <context>
+    <name>BanTableModel</name>
+    </context>
+<context>
     <name>BitcoinGUI</name>
     <message>
         <source>&amp;Transactions</source>
@@ -149,11 +152,7 @@
     </context>
 <context>
     <name>OverviewPage</name>
-    <message>
-        <source>out of sync</source>
-        <translation>синхрондоштурулган эмес</translation>
-    </message>
-</context>
+    </context>
 <context>
     <name>PaymentServer</name>
     </context>

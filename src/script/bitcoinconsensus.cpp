@@ -6,6 +6,7 @@
 #include "bitcoinconsensus.h"
 
 #include "primitives/transaction.h"
+#include "pubkey.h"
 #include "script/interpreter.h"
 #include "script/script_error.h"
 #include "version.h"
@@ -61,6 +62,12 @@ inline int set_error(bitcoinconsensus_error* ret, bitcoinconsensus_error serror)
     return 0;
 }
 
+struct ECCryptoClosure
+{
+    ECCVerifyHandle handle;
+};
+
+ECCryptoClosure instance_of_eccryptoclosure;
 
 class bitcoinconsensus_txTo_sigchecker {
 public:
@@ -155,7 +162,7 @@ public:
 };
 
 
-} // anon namespace
+}
 
 bitcoinconsensus_script_execution_t *bitcoinconsensus_script_execution(const unsigned char *script, unsigned int scriptLen, const unsigned char *txTo, unsigned int txToLen, unsigned int nIn, bitcoinconsensus_error* err)
 {

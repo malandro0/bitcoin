@@ -19,8 +19,6 @@
 #include <QDebug>
 #include <QSslCertificate>
 
-using namespace std;
-
 class SSLVerifyError : public std::runtime_error
 {
 public:
@@ -49,7 +47,7 @@ bool PaymentRequestPlus::parse(const QByteArray& data)
     return true;
 }
 
-bool PaymentRequestPlus::SerializeToString(string* output) const
+bool PaymentRequestPlus::SerializeToString(std::string* output) const
 {
     return paymentRequest.SerializeToString(output);
 }
@@ -147,7 +145,7 @@ bool PaymentRequestPlus::getMerchant(X509_STORE* certStore, QString& merchant) c
             int error = X509_STORE_CTX_get_error(store_ctx);
             // For testing payment requests, we allow self signed root certs!
             // This option is just shown in the UI options, if -help-debug is enabled.
-            if (!(error == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT && GetBoolArg("-allowselfsignedrootcertificates", false))) {
+            if (!(error == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT && GetBoolArg("-allowselfsignedrootcertificates", DEFAULT_SELFSIGNED_ROOTCERTS))) {
                 throw SSLVerifyError(X509_verify_cert_error_string(error));
             } else {
                qDebug() << "PaymentRequestPlus::getMerchant: Allowing self signed root certificate, because -allowselfsignedrootcertificates is true.";
@@ -203,7 +201,7 @@ QList<std::pair<CScript,CAmount> > PaymentRequestPlus::getPayTo() const
         const unsigned char* scriptStr = (const unsigned char*)details.outputs(i).script().data();
         CScript s(scriptStr, scriptStr+details.outputs(i).script().size());
 
-        result.append(make_pair(s, details.outputs(i).amount()));
+        result.append(std::make_pair(s, details.outputs(i).amount()));
     }
     return result;
 }

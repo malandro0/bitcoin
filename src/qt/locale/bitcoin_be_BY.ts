@@ -102,7 +102,7 @@
     <name>AddressTableModel</name>
     <message>
         <source>Label</source>
-        <translation>Пазнака</translation>
+        <translation>Метка</translation>
     </message>
     <message>
         <source>Address</source>
@@ -220,6 +220,9 @@
         <translation>Парольная фраза гаманца паспяхова зменена.</translation>
     </message>
 </context>
+<context>
+    <name>BanTableModel</name>
+    </context>
 <context>
     <name>BitcoinGUI</name>
     <message>
@@ -383,6 +386,10 @@
         <translation>Дапамога</translation>
     </message>
     <message>
+        <source>Bitcoin Core</source>
+        <translation>Bitcoin Core</translation>
+    </message>
+    <message>
         <source>Request payments (generates QR codes and bitcoin: URIs)</source>
         <translation>Запатрабаваць плацёж (генеруецца QR-код для біткойн URI)</translation>
     </message>
@@ -403,8 +410,16 @@
         <translation>Паказаць спіс адрасоў і метак для прымання</translation>
     </message>
     <message>
+        <source>Open a bitcoin: URI or payment request</source>
+        <translation>Адкрыць біткойн: URI ці запыт плацяжу</translation>
+    </message>
+    <message>
         <source>&amp;Command-line options</source>
         <translation>Опцыі каманднага радка</translation>
+    </message>
+    <message>
+        <source>Show the Bitcoin Core help message to get a list with possible Bitcoin command-line options</source>
+        <translation>Паказваць даведку Bitcoin Core каб атрымаць спіс магчымых опцый каманднага радка</translation>
     </message>
     <message numerus="yes">
         <source>%n active connection(s) to Bitcoin network</source>
@@ -429,6 +444,10 @@
     <message numerus="yes">
         <source>%n week(s)</source>
         <translation><numerusform>%n тыдзень</numerusform><numerusform>%n тыдні</numerusform><numerusform>%n тыдняў</numerusform><numerusform>%n тыдняў</numerusform></translation>
+    </message>
+    <message>
+        <source>%1 and %2</source>
+        <translation>%1 і %2</translation>
     </message>
     <message numerus="yes">
         <source>%n year(s)</source>
@@ -523,6 +542,10 @@
 <context>
     <name>CoinControlDialog</name>
     <message>
+        <source>Quantity:</source>
+        <translation>Колькасць:</translation>
+    </message>
+    <message>
         <source>Bytes:</source>
         <translation>Байтаў:</translation>
     </message>
@@ -547,6 +570,10 @@
         <translation>Пасля камісіі:</translation>
     </message>
     <message>
+        <source>(un)select all</source>
+        <translation>(не)выбраць ўсё</translation>
+    </message>
+    <message>
         <source>Tree mode</source>
         <translation>Рэжым дрэва</translation>
     </message>
@@ -557,6 +584,14 @@
     <message>
         <source>Amount</source>
         <translation>Колькасць</translation>
+    </message>
+    <message>
+        <source>Received with label</source>
+        <translation>Прыняць праз метку</translation>
+    </message>
+    <message>
+        <source>Received with address</source>
+        <translation>Прыняць праз адрас</translation>
     </message>
     <message>
         <source>Date</source>
@@ -589,6 +624,38 @@
     <message>
         <source>Copy transaction ID</source>
         <translation>Капіяваць ID транзакцыі</translation>
+    </message>
+    <message>
+        <source>Lock unspent</source>
+        <translation>Замкнуць непатрачанае</translation>
+    </message>
+    <message>
+        <source>Unlock unspent</source>
+        <translation>Адамкнуць непатрачанае</translation>
+    </message>
+    <message>
+        <source>Copy quantity</source>
+        <translation>Капіяваць колькасць</translation>
+    </message>
+    <message>
+        <source>Copy fee</source>
+        <translation>Капіяваць камісію</translation>
+    </message>
+    <message>
+        <source>Copy after fee</source>
+        <translation>Капіяваць з выняткам камісіі</translation>
+    </message>
+    <message>
+        <source>Copy bytes</source>
+        <translation>Капіяваць байты</translation>
+    </message>
+    <message>
+        <source>Copy priority</source>
+        <translation>Капіяваць прыярытэт</translation>
+    </message>
+    <message>
+        <source>Copy dust</source>
+        <translation>Капіяваць пыл</translation>
     </message>
     <message>
         <source>highest</source>
@@ -635,6 +702,14 @@
         <translation>не</translation>
     </message>
     <message>
+        <source>This means a fee of at least %1 per kB is required.</source>
+        <translation>Гэта значыць патрэбную камісію мінімум %1 на Кб.</translation>
+    </message>
+    <message>
+        <source>Transactions with higher priority are more likely to get included into a block.</source>
+        <translation>Транзакцыя большага прыярытэту больш прываблівая для ўключэння ў блок.</translation>
+    </message>
+    <message>
         <source>(no label)</source>
         <translation>непазначаны</translation>
     </message>
@@ -647,7 +722,7 @@
     </message>
     <message>
         <source>&amp;Label</source>
-        <translation>Пазнака</translation>
+        <translation>Метка</translation>
     </message>
     <message>
         <source>&amp;Address</source>
@@ -684,9 +759,25 @@
 </context>
 <context>
     <name>FreespaceChecker</name>
+    <message>
+        <source>A new data directory will be created.</source>
+        <translation>Будзе створаны новы каталог з данымі.</translation>
+    </message>
+    <message>
+        <source>name</source>
+        <translation>імя</translation>
+    </message>
+    <message>
+        <source>Directory already exists. Add %1 if you intend to create a new directory here.</source>
+        <translation>Каталог ужо існуе. Дадайце %1 калі вы збіраецеся стварыць тут новы каталог.</translation>
+    </message>
     </context>
 <context>
     <name>HelpMessageDialog</name>
+    <message>
+        <source>Bitcoin Core</source>
+        <translation>Bitcoin Core</translation>
+    </message>
     <message>
         <source>(%1-bit)</source>
         <translation>(%1-біт)</translation>
@@ -717,6 +808,10 @@
     <message>
         <source>Welcome to Bitcoin Core.</source>
         <translation>Вітаем у Bitcoin Core.</translation>
+    </message>
+    <message>
+        <source>Bitcoin Core</source>
+        <translation>Bitcoin Core</translation>
     </message>
     <message>
         <source>Error</source>
@@ -779,7 +874,7 @@
     <name>ReceiveCoinsDialog</name>
     <message>
         <source>&amp;Label:</source>
-        <translation>Пазнака:</translation>
+        <translation>Метка:</translation>
     </message>
     <message>
         <source>Copy label</source>
@@ -802,7 +897,7 @@
     </message>
     <message>
         <source>Label</source>
-        <translation>Пазнака</translation>
+        <translation>Метка</translation>
     </message>
     <message>
         <source>Message</source>
@@ -817,7 +912,7 @@
     </message>
     <message>
         <source>Label</source>
-        <translation>Пазнака</translation>
+        <translation>Метка</translation>
     </message>
     <message>
         <source>Message</source>
@@ -837,6 +932,10 @@
     <message>
         <source>Send Coins</source>
         <translation>Даслаць Манеты</translation>
+    </message>
+    <message>
+        <source>Quantity:</source>
+        <translation>Колькасць:</translation>
     </message>
     <message>
         <source>Bytes:</source>
@@ -879,8 +978,28 @@
         <translation>Пацвердзіць дасыланне манет</translation>
     </message>
     <message>
+        <source>Copy quantity</source>
+        <translation>Капіяваць колькасць</translation>
+    </message>
+    <message>
         <source>Copy amount</source>
         <translation>Капіяваць колькасць</translation>
+    </message>
+    <message>
+        <source>Copy fee</source>
+        <translation>Капіяваць камісію</translation>
+    </message>
+    <message>
+        <source>Copy after fee</source>
+        <translation>Капіяваць з выняткам камісіі</translation>
+    </message>
+    <message>
+        <source>Copy bytes</source>
+        <translation>Капіяваць байты</translation>
+    </message>
+    <message>
+        <source>Copy priority</source>
+        <translation>Капіяваць прыярытэт</translation>
     </message>
     <message>
         <source>The amount to pay must be larger than 0.</source>
@@ -889,6 +1008,10 @@
     <message>
         <source>(no label)</source>
         <translation>непазначаны</translation>
+    </message>
+    <message>
+        <source>Copy dust</source>
+        <translation>Капіяваць пыл</translation>
     </message>
     </context>
 <context>
@@ -907,7 +1030,7 @@
     </message>
     <message>
         <source>&amp;Label:</source>
-        <translation>Пазнака:</translation>
+        <translation>Метка:</translation>
     </message>
     <message>
         <source>Alt+A</source>
@@ -946,6 +1069,10 @@
     </context>
 <context>
     <name>SplashScreen</name>
+    <message>
+        <source>Bitcoin Core</source>
+        <translation>Bitcoin Core</translation>
+    </message>
     <message>
         <source>The Bitcoin Core developers</source>
         <translation>Распрацоўнікі Bitcoin Core</translation>
@@ -1044,7 +1171,7 @@
     </message>
     <message>
         <source>Label</source>
-        <translation>Пазнака</translation>
+        <translation>Метка</translation>
     </message>
     <message>
         <source>Received with</source>
@@ -1187,7 +1314,7 @@
     </message>
     <message>
         <source>Label</source>
-        <translation>Пазнака</translation>
+        <translation>Метка</translation>
     </message>
     <message>
         <source>Address</source>
@@ -1249,10 +1376,6 @@
         <translation>Запусціць у фоне як дэман і прымаць каманды</translation>
     </message>
     <message>
-        <source>Use the test network</source>
-        <translation>Ужываць тэставае сеціва</translation>
-    </message>
-    <message>
         <source>Do you want to rebuild the block database now?</source>
         <translation>Ці жадаеце вы перабудаваць зараз базу звестак блокаў?</translation>
     </message>
@@ -1271,10 +1394,6 @@
     <message>
         <source>Error opening block database</source>
         <translation>Памылка адчынення базы звестак блокаў</translation>
-    </message>
-    <message>
-        <source>Error: A fatal internal error occured, see debug.log for details</source>
-        <translation>Памылка: здарылася Фатальная унутраная памылка, глядзі debug.log для падрабязнасцяў</translation>
     </message>
     <message>
         <source>Error: Disk space is low!</source>
@@ -1305,10 +1424,6 @@
         <translation>Опцыі гаманца:</translation>
     </message>
     <message>
-        <source>Imports blocks from external blk000??.dat file</source>
-        <translation>Імпартаванне блокаў з вонкавага blk000??.dat файла</translation>
-    </message>
-    <message>
         <source>Activating best chain...</source>
         <translation>Актывацыя лепшага ланцуга...</translation>
     </message>
@@ -1327,10 +1442,6 @@
     <message>
         <source>Signing transaction failed</source>
         <translation>Памылка подпісу транзакцыі</translation>
-    </message>
-    <message>
-        <source>Start minimized</source>
-        <translation>Стартаваць ммінімізаванай</translation>
     </message>
     <message>
         <source>This is experimental software.</source>
@@ -1359,18 +1470,6 @@
     <message>
         <source>Execute command when the best block changes (%s in cmd is replaced by block hash)</source>
         <translation>Выканаць каманду калі лепшы блок зменіцца (%s замяняецца на хэш блока)</translation>
-    </message>
-    <message>
-        <source>Upgrade wallet to latest format</source>
-        <translation>Абнавіць гаманец на новы фармат</translation>
-    </message>
-    <message>
-        <source>Rescan the block chain for missing wallet transactions</source>
-        <translation>Перасканаваць ланцуг блокаў дзеля пошуку адсутных транзакцый</translation>
-    </message>
-    <message>
-        <source>Use OpenSSL (https) for JSON-RPC connections</source>
-        <translation>Ужываць OpenSSL (https) для JSON-RPC злучэнняў</translation>
     </message>
     <message>
         <source>Loading addresses...</source>

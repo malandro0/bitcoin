@@ -3,9 +3,8 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-from test_framework import BitcoinTestFramework
-from bitcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
-from util import *
+from test_framework.test_framework import BitcoinTestFramework
+from test_framework.util import *
 
 
 def check_array_result(object_array, to_match, expected):
@@ -39,7 +38,7 @@ class LongpollThread(threading.Thread):
         self.longpollid = templat['longpollid']
         # create a new connection to the node, we can't use the same
         # connection from two threads
-        self.node = AuthServiceProxy(node.url, timeout=600)
+        self.node = get_rpc_proxy(node.url, 1, timeout=600)
 
     def run(self):
         self.node.getblocktemplate({'longpollid':self.longpollid})

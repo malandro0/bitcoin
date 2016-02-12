@@ -8,8 +8,8 @@
 # that spend (directly or indirectly) coinbase transactions.
 #
 
-from test_framework import BitcoinTestFramework
-from util import *
+from test_framework.test_framework import BitcoinTestFramework
+from test_framework.util import *
 from pprint import pprint
 from time import sleep
 
@@ -40,6 +40,7 @@ class RawTransactionsTest(BitcoinTestFramework):
 
         #prepare some coins for multiple *rawtransaction commands
         self.nodes[2].generate(1)
+        self.sync_all()
         self.nodes[0].generate(101)
         self.sync_all()
         self.nodes[0].sendtoaddress(self.nodes[2].getnewaddress(),1.5);

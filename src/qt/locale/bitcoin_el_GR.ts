@@ -2,6 +2,10 @@
 <context>
     <name>AddressBookPage</name>
     <message>
+        <source>Right-click to edit address or label</source>
+        <translation>Δεξί-κλικ για επεξεργασία της διεύθυνσης ή της ετικέτας</translation>
+    </message>
+    <message>
         <source>Create a new address</source>
         <translation>Δημιουργία νέας διεύθυνσης</translation>
     </message>
@@ -209,6 +213,9 @@
         <translation>Ο κωδικος του πορτοφολιού άλλαξε με επιτυχία.</translation>
     </message>
 </context>
+<context>
+    <name>BanTableModel</name>
+    </context>
 <context>
     <name>BitcoinGUI</name>
     <message>
@@ -448,6 +455,36 @@
         <translation>Ενημέρωση...</translation>
     </message>
     <message>
+        <source>Date: %1
+</source>
+        <translation>Ημερομηνία: %1
+</translation>
+    </message>
+    <message>
+        <source>Amount: %1
+</source>
+        <translation>Ποσό: %1
+</translation>
+    </message>
+    <message>
+        <source>Type: %1
+</source>
+        <translation>Τύπος: %1
+</translation>
+    </message>
+    <message>
+        <source>Label: %1
+</source>
+        <translation>Ετικέτα: %1
+</translation>
+    </message>
+    <message>
+        <source>Address: %1
+</source>
+        <translation>Διεύθυνση: %1
+</translation>
+    </message>
+    <message>
         <source>Sent transaction</source>
         <translation>Η συναλλαγή απεστάλη</translation>
     </message>
@@ -646,6 +683,18 @@
         <translation>κανένα</translation>
     </message>
     <message>
+        <source>This label turns red if the transaction size is greater than 1000 bytes.</source>
+        <translation>Αυτή η ετικέτα γίνεται κόκκινη αν το μέγεθος της συναλλαγής είναι μεγαλύτερο από 1000 bytes.</translation>
+    </message>
+    <message>
+        <source>This label turns red if the priority is smaller than "medium".</source>
+        <translation>Αυτή η ετικέτα γίνεται κόκκινη αν η προτεραιότητα είναι μικρότερη από "μεσαία".</translation>
+    </message>
+    <message>
+        <source>This label turns red if any recipient receives an amount smaller than %1.</source>
+        <translation>Αυτή η ετικέτα γίνεται κόκκινη αν οποιοσδήποτε παραλήπτης λάβει ποσό μικρότερο από %1.</translation>
+    </message>
+    <message>
         <source>yes</source>
         <translation>ναι</translation>
     </message>
@@ -822,7 +871,15 @@
         <source>Error</source>
         <translation>Σφάλμα</translation>
     </message>
-    </context>
+    <message numerus="yes">
+        <source>%n GB of free space available</source>
+        <translation><numerusform>%n GB ελεύθερου χώρου διαθέσιμα</numerusform><numerusform>%n GB ελεύθερου χώρου διαθέσιμα</numerusform></translation>
+    </message>
+    <message numerus="yes">
+        <source>(of %n GB needed)</source>
+        <translation><numerusform>(από το %n GB που απαιτείται)</numerusform><numerusform>(από τα %n GB που απαιτούνται)</numerusform></translation>
+    </message>
+</context>
 <context>
     <name>OpenURIDialog</name>
     <message>
@@ -881,8 +938,20 @@
         <translation>Διεύθυνση IP του διαμεσολαβητή (π.χ. 127.0.0.1  / IPv6: ::1)</translation>
     </message>
     <message>
+        <source>Minimize instead of exit the application when the window is closed. When this option is enabled, the application will be closed only after selecting Exit in the menu.</source>
+        <translation>Ελαχιστοποίηση αντί για έξοδο κατά το κλείσιμο του παραθύρου. Όταν αυτή η επιλογή είναι ενεργοποιημένη, η εφαρμογή θα κλείνει μόνο αν επιλεχθεί η Έξοδος στο μενού.</translation>
+    </message>
+    <message>
+        <source>Third party URLs (e.g. a block explorer) that appear in the transactions tab as context menu items. %s in the URL is replaced by transaction hash. Multiple URLs are separated by vertical bar |.</source>
+        <translation>URLs από τρίτους (π.χ. ένας εξερευνητής μπλοκ) τα οποία εμφανίζονται στην καρτέλα συναλλαγών ως στοιχεία μενού. Το %s στα URL αντικαθιστάται από την τιμή της κατατεμαχισμένης συναλλαγής.</translation>
+    </message>
+    <message>
         <source>Third party transaction URLs</source>
         <translation>Διευθύνσεις τρίτων συναλλαγών.</translation>
+    </message>
+    <message>
+        <source>Active command-line options that override above options:</source>
+        <translation>Ενεργές επιλογές γραμμής-εντολών που παρακάμπτουν τις παραπάνω επιλογές:</translation>
     </message>
     <message>
         <source>Reset all client options to default.</source>
@@ -897,6 +966,10 @@
         <translation>&amp;Δίκτυο</translation>
     </message>
     <message>
+        <source>(0 = auto, &lt;0 = leave that many cores free)</source>
+        <translation>(0 = αυτόματο, &lt;0 = ελεύθεροι πυρήνες)</translation>
+    </message>
+    <message>
         <source>W&amp;allet</source>
         <translation>Π&amp;ορτοφόλι</translation>
     </message>
@@ -907,6 +980,14 @@
     <message>
         <source>Enable coin &amp;control features</source>
         <translation>Επιλογή κατα πόσο να αναδείχνονται οι δυνατότητες ελέγχου κερμάτων.</translation>
+    </message>
+    <message>
+        <source>If you disable the spending of unconfirmed change, the change from a transaction cannot be used until that transaction has at least one confirmation. This also affects how your balance is computed.</source>
+        <translation>Εάν απενεργοποιήσετε το ξόδεμα μη επικυρωμένων ρέστων, τα ρέστα από μια συναλλαγή δεν μπορούν να χρησιμοποιηθούν έως ότου αυτή η συναλλαγή έχει έστω μια επικύρωση. Αυτό επίσης επηρεάζει το πως υπολογίζεται το υπόλοιπό σας.</translation>
+    </message>
+    <message>
+        <source>&amp;Spend unconfirmed change</source>
+        <translation>&amp;Ξόδεμα μη επικυρωμένων ρέστων</translation>
     </message>
     <message>
         <source>Automatically open the Bitcoin client port on the router. This only works when your router supports UPnP and it is enabled.</source>
@@ -1057,6 +1138,10 @@
         <translation>Το τρέχον συνολικό υπόλοιπο</translation>
     </message>
     <message>
+        <source>Your current balance in watch-only addresses</source>
+        <translation>Το τρέχον υπόλοιπο σας σε διευθύνσεις παρακολούθησης μόνο</translation>
+    </message>
+    <message>
         <source>Spendable:</source>
         <translation>Ξοδεμένα:</translation>
     </message>
@@ -1065,8 +1150,16 @@
         <translation>Πρόσφατες συναλλαγές</translation>
     </message>
     <message>
-        <source>out of sync</source>
-        <translation>εκτός συγχρονισμού</translation>
+        <source>Unconfirmed transactions to watch-only addresses</source>
+        <translation>Μη επικυρωμένες συναλλαγές σε διευθύνσεις παρακολούθησης μόνο</translation>
+    </message>
+    <message>
+        <source>Mined balance in watch-only addresses that has not yet matured</source>
+        <translation>Εξορυγμένο υπόλοιπο σε διευθύνσεις παρακολούθησης μόνο που δεν έχει ωριμάσει ακόμα</translation>
+    </message>
+    <message>
+        <source>Current total balance in watch-only addresses</source>
+        <translation>Το τρέχον συνολικό υπόλοιπο σε διευθύνσεις παρακολούθησης μόνο</translation>
     </message>
 </context>
 <context>
@@ -1088,6 +1181,10 @@
         <translation>Η αίτηση πληρωμής δεν έχει αρχίζει ακόμα.</translation>
     </message>
     <message>
+        <source>Requested payment amount of %1 is too small (considered dust).</source>
+        <translation>Το ζητούμενο ποσό πληρωμής του %1 είναι πολύ μικρό (θεωρείται σκόνη)</translation>
+    </message>
+    <message>
         <source>Payment request error</source>
         <translation>Σφάλμα αιτήματος πληρωμής</translation>
     </message>
@@ -1106,6 +1203,18 @@
     <message>
         <source>Refund from %1</source>
         <translation>Επιστροφή ποσού από %1</translation>
+    </message>
+    <message>
+        <source>Error communicating with %1: %2</source>
+        <translation>Σφάλμα επικοινωνίας με %1: %2</translation>
+    </message>
+    <message>
+        <source>Payment request cannot be parsed!</source>
+        <translation>Η αίτηση πληρωμής δεν μπορεί να αναλυθεί!</translation>
+    </message>
+    <message>
+        <source>Bad response from server %1</source>
+        <translation>Κακή απάντηση από διακομιστή %1</translation>
     </message>
     <message>
         <source>Payment acknowledged</source>
@@ -1212,6 +1321,10 @@
         <translation>Χρησιμοποιηση της OpenSSL εκδοσης</translation>
     </message>
     <message>
+        <source>Using BerkeleyDB version</source>
+        <translation>Χρήση BerkeleyDB έκδοσης</translation>
+    </message>
+    <message>
         <source>Startup time</source>
         <translation>Χρόνος εκκίνησης</translation>
     </message>
@@ -1240,12 +1353,40 @@
         <translation>Παραλήφθησαν</translation>
     </message>
     <message>
+        <source>Sent</source>
+        <translation>Αποστολή</translation>
+    </message>
+    <message>
+        <source>&amp;Peers</source>
+        <translation>&amp;Χρήστες</translation>
+    </message>
+    <message>
+        <source>Select a peer to view detailed information.</source>
+        <translation>Επιλέξτε ένα χρήστη για να δείτε αναλυτικές πληροφορίες.</translation>
+    </message>
+    <message>
         <source>Version</source>
         <translation>Έκδοση</translation>
     </message>
     <message>
         <source>Services</source>
         <translation>Υπηρεσίες</translation>
+    </message>
+    <message>
+        <source>Ban Score</source>
+        <translation>Σκορ αποκλησμού</translation>
+    </message>
+    <message>
+        <source>Connection Time</source>
+        <translation>Χρόνος σύνδεσης</translation>
+    </message>
+    <message>
+        <source>Last Send</source>
+        <translation>Τελευταία αποστολή</translation>
+    </message>
+    <message>
+        <source>Last Receive</source>
+        <translation>Τελευταία λήψη</translation>
     </message>
     <message>
         <source>Ping Time</source>
@@ -1339,7 +1480,7 @@
         <source>Unknown</source>
         <translation>Άγνωστο(α)</translation>
     </message>
-    </context>
+</context>
 <context>
     <name>ReceiveCoinsDialog</name>
     <message>
@@ -1353,6 +1494,10 @@
     <message>
         <source>&amp;Message:</source>
         <translation>&amp;Μήνυμα:</translation>
+    </message>
+    <message>
+        <source>R&amp;euse an existing receiving address (not recommended)</source>
+        <translation>Ε&amp;παναχρησιμοποίηση υπάρχουσας διεύθυνσης λήψης (δεν συνιστάται)</translation>
     </message>
     <message>
         <source>Clear all fields of the form.</source>
@@ -1369,6 +1514,10 @@
     <message>
         <source>Show</source>
         <translation>Εμφάνιση</translation>
+    </message>
+    <message>
+        <source>Remove the selected entries from the list</source>
+        <translation>Αφαίρεση επιλεγμένων καταχωρίσεων από τη λίστα</translation>
     </message>
     <message>
         <source>Remove</source>
@@ -1398,8 +1547,16 @@
         <translation>Αντιγραφη της επιλεγμενης διεύθυνσης στο πρόχειρο του συστηματος</translation>
     </message>
     <message>
+        <source>Copy &amp;Address</source>
+        <translation>Αντιγραφή &amp;Διεύθυνσης</translation>
+    </message>
+    <message>
         <source>&amp;Save Image...</source>
         <translation>&amp;Αποθήκευση εικόνας...</translation>
+    </message>
+    <message>
+        <source>Request payment to %1</source>
+        <translation>Αίτηση πληρωμής για %1</translation>
     </message>
     <message>
         <source>Payment information</source>
@@ -1476,6 +1633,10 @@
         <translation>Χαρακτηρηστικά επιλογής κερμάτων</translation>
     </message>
     <message>
+        <source>Inputs...</source>
+        <translation>Εισροές...</translation>
+    </message>
+    <message>
         <source>automatically selected</source>
         <translation>επιλεγμένο αυτόματα</translation>
     </message>
@@ -1512,6 +1673,14 @@
         <translation>Ρέστα:</translation>
     </message>
     <message>
+        <source>If this is activated, but the change address is empty or invalid, change will be sent to a newly generated address.</source>
+        <translation>Όταν ενεργό, αλλά η διεύθυνση ρέστων είναι κενή ή άκυρη, τα ρέστα θα σταλούν σε μία πρόσφατα δημιουργημένη διεύθυνση.</translation>
+    </message>
+    <message>
+        <source>Custom change address</source>
+        <translation>Προσαρμοσμένη διεύθυνση ρέστων</translation>
+    </message>
+    <message>
         <source>Transaction Fee:</source>
         <translation>Τέλος συναλλαγής:</translation>
     </message>
@@ -1520,8 +1689,40 @@
         <translation>Επιλογή...</translation>
     </message>
     <message>
+        <source>per kilobyte</source>
+        <translation>ανά kilobyte</translation>
+    </message>
+    <message>
+        <source>Hide</source>
+        <translation>Απόκρυψη</translation>
+    </message>
+    <message>
+        <source>total at least</source>
+        <translation>συνολικά τουλάχιστον</translation>
+    </message>
+    <message>
+        <source>Recommended:</source>
+        <translation>Προτεινόμενο: </translation>
+    </message>
+    <message>
+        <source>Custom:</source>
+        <translation>Προσαρμογή:</translation>
+    </message>
+    <message>
+        <source>Confirmation time:</source>
+        <translation>Χρόνος επικύρωσης:</translation>
+    </message>
+    <message>
+        <source>normal</source>
+        <translation>κανονικό</translation>
+    </message>
+    <message>
         <source>fast</source>
         <translation>Γρήγορο</translation>
+    </message>
+    <message>
+        <source>(confirmation may take longer)</source>
+        <translation>(η επικύρωση ίσως χρειαστεί περισσότερο χρόνο)</translation>
     </message>
     <message>
         <source>Send to multiple recipients at once</source>
@@ -1592,10 +1793,6 @@
         <translation>Αντιγραφή των ρέστων</translation>
     </message>
     <message>
-        <source>Total Amount %1 (= %2)</source>
-        <translation>Ολικό Ποσό %1 (= %2)</translation>
-    </message>
-    <message>
         <source>or</source>
         <translation>ή</translation>
     </message>
@@ -1659,6 +1856,14 @@
         <translation>Επιλογή διεύθυνσης που έχει ήδη χρησιμοποιηθεί</translation>
     </message>
     <message>
+        <source>This is a normal payment.</source>
+        <translation>Αυτή είναι μια απλή πληρωμή.</translation>
+    </message>
+    <message>
+        <source>The Bitcoin address to send the payment to</source>
+        <translation>Η διεύθυνση Bitcoin που θα σταλεί η πληρωμή</translation>
+    </message>
+    <message>
         <source>Alt+A</source>
         <translation>Alt+A</translation>
     </message>
@@ -1677,6 +1882,10 @@
     <message>
         <source>Message:</source>
         <translation>Μήνυμα:</translation>
+    </message>
+    <message>
+        <source>Enter a label for this address to add it to the list of used addresses</source>
+        <translation>Εισάγεται μία ετικέτα για αυτή την διεύθυνση για να προστεθεί στη λίστα με τις χρησιμοποιημένες διευθύνσεις</translation>
     </message>
     <message>
         <source>Pay To:</source>
@@ -2191,6 +2400,10 @@
         <translation>Επιτυχής εξαγωγή</translation>
     </message>
     <message>
+        <source>The transaction history was successfully saved to %1.</source>
+        <translation>Το ιστορικό συναλλαγών αποθηκεύτηκε επιτυχώς στο %1.</translation>
+    </message>
+    <message>
         <source>Comma separated file (*.csv)</source>
         <translation>Αρχείο οριοθετημένο με κόμματα (*.csv)</translation>
     </message>
@@ -2229,7 +2442,11 @@
 </context>
 <context>
     <name>UnitDisplayStatusBarControl</name>
-    </context>
+    <message>
+        <source>Unit to show amounts in. Click to select another unit.</source>
+        <translation>Μονάδα μέτρησης προβολής ποσών. Κάντε κλικ για επιλογή άλλης μονάδας.</translation>
+    </message>
+</context>
 <context>
     <name>WalletFrame</name>
     <message>
@@ -2267,6 +2484,10 @@
         <translation>Αποτυχία κατά τη δημιουργία αντιγράφου</translation>
     </message>
     <message>
+        <source>There was an error trying to save the wallet data to %1.</source>
+        <translation>Παρουσιάστηκε σφάλμα κατά την αποθήκευση των δεδομένων πορτοφολιού στο %1.</translation>
+    </message>
+    <message>
         <source>The wallet data was successfully saved to %1.</source>
         <translation>Τα δεδομένα πορτοφολιού αποθηκεύτηκαν με επιτυχία στο %1.</translation>
     </message>
@@ -2302,10 +2523,6 @@
         <translation>Εκτέλεση στο παρασκήνιο κι αποδοχή εντολών</translation>
     </message>
     <message>
-        <source>Use the test network</source>
-        <translation>Χρήση του δοκιμαστικού δικτύου</translation>
-    </message>
-    <message>
         <source>Accept connections from outside (default: 1 if no -proxy or -connect)</source>
         <translation>Να δέχεσαι συνδέσεις από έξω(προεπιλογή:1)</translation>
     </message>
@@ -2322,24 +2539,8 @@
         <translation>Αυτό είναι ένα προ-τεστ κυκλοφορίας - χρησιμοποιήστε το με δική σας ευθύνη - δεν χρησιμοποιείτε για εξόρυξη ή για αλλες εφαρμογές</translation>
     </message>
     <message>
-        <source>Warning: -paytxfee is set very high! This is the transaction fee you will pay if you send a transaction.</source>
-        <translation>Προειδοποίηση: Η παράμετρος -paytxfee είναι πολύ υψηλή. Πρόκειται για την αμοιβή που θα πληρώνετε για κάθε συναλλαγή που θα στέλνετε.</translation>
-    </message>
-    <message>
-        <source>Warning: error reading wallet.dat! All keys read correctly, but transaction data or address book entries might be missing or incorrect.</source>
-        <translation>Προειδοποίηση : Σφάλμα wallet.dat κατα την ανάγνωση ! Όλα τα κλειδιά αναγνωρισθηκαν σωστά, αλλά τα δεδομένα των συναλλαγών ή καταχωρήσεις στο βιβλίο διευθύνσεων μπορεί να είναι ελλιπείς ή λανθασμένα. </translation>
-    </message>
-    <message>
         <source>Warning: wallet.dat corrupt, data salvaged! Original wallet.dat saved as wallet.{timestamp}.bak in %s; if your balance or transactions are incorrect you should restore from a backup.</source>
         <translation>Προειδοποίηση : το αρχειο wallet.dat ειναι διεφθαρμένο, τα δεδομένα σώζονται ! Original wallet.dat αποθηκεύονται ως wallet.{timestamp}.bak στο %s . Αν το υπόλοιπο του ή τις συναλλαγές σας, είναι λάθος θα πρέπει να επαναφέρετε από ένα αντίγραφο ασφαλείας</translation>
-    </message>
-    <message>
-        <source>(default: 1)</source>
-        <translation>(προεπιλογή: 1)</translation>
-    </message>
-    <message>
-        <source>Attempt to recover private keys from a corrupt wallet.dat</source>
-        <translation>Προσπάθεια για ανακτησει ιδιωτικων κλειδιων από ενα διεφθαρμένο αρχειο wallet.dat </translation>
     </message>
     <message>
         <source>Block creation options:</source>
@@ -2378,10 +2579,6 @@
         <translation>Σφάλμα φορτωσης της βασης δεδομενων των μπλοκ</translation>
     </message>
     <message>
-        <source>Error: A fatal internal error occured, see debug.log for details</source>
-        <translation>Σφάλμα: Παρουσιάστηκε ανεπανόρθωτο εσωτερικό σφάλμα, δείτε debug.log για λεπτομέρειες</translation>
-    </message>
-    <message>
         <source>Error: Disk space is low!</source>
         <translation>Προειδοποίηση: Χαμηλός χώρος στο δίσκο  </translation>
     </message>
@@ -2402,6 +2599,10 @@
         <translation>Δεν ειναι αρκετες περιγραφες αρχείων διαθέσιμες.</translation>
     </message>
     <message>
+        <source>Only connect to nodes in network &lt;net&gt; (ipv4, ipv6 or onion)</source>
+        <translation>Μόνο σύνδεση σε κόμβους του δικτύου &lt;net&gt; (ipv4, ipv6 ή onion)</translation>
+    </message>
+    <message>
         <source>Specify wallet file (within data directory)</source>
         <translation>Επιλέξτε αρχείο πορτοφολιού (μέσα απο κατάλογο δεδομένων)</translation>
     </message>
@@ -2414,40 +2615,36 @@
         <translation>Επαλήθευση πορτοφολιου... </translation>
     </message>
     <message>
-        <source>Wallet options:</source>
-        <translation>Επιλογές πορτοφολιού:</translation>
+        <source>Wallet %s resides outside data directory %s</source>
+        <translation>Το πορτοφόλι %s βρίσκεται έξω από το φάκελο δεδομένων %s</translation>
     </message>
     <message>
-        <source>Imports blocks from external blk000??.dat file</source>
-        <translation>Εισαγωγή μπλοκ από εξωτερικό αρχείο blk000?.dat</translation>
+        <source>Wallet options:</source>
+        <translation>Επιλογές πορτοφολιού:</translation>
     </message>
     <message>
         <source>Cannot obtain a lock on data directory %s. Bitcoin Core is probably already running.</source>
         <translation>Αδυναμία κλειδώματος του φακέλου δεδομένων %s. Πιθανώς το Bitcoin να είναι ήδη ενεργό.</translation>
     </message>
     <message>
-        <source>Choose data directory on startup (default: 0)</source>
-        <translation>Επιλογή φακέλου δεδομένων στην εκκίνηση (προεπιλεγμένο: 0)</translation>
-    </message>
-    <message>
         <source>Connect through SOCKS5 proxy</source>
         <translation>Σύνδεση μέσω διαμεσολαβητή SOCKS5</translation>
-    </message>
-    <message>
-        <source>Could not parse -rpcbind value %s as network address</source>
-        <translation>Δεν μπόρεσε να αναλυθεί η παράμετρος -rpcbind value %s ως διεύθυνση δικτύου</translation>
     </message>
     <message>
         <source>Error loading wallet.dat: Wallet requires newer version of Bitcoin Core</source>
         <translation>Σφάλμα φόρτωσης wallet.dat: Το Πορτοφόλι απαιτεί μια νεότερη έκδοση του Bitcoin</translation>
     </message>
     <message>
-        <source>Error: Unsupported argument -tor found, use -onion.</source>
-        <translation>Σφάλμα: Μη συμβατή παράμετρος -tor. Χρησιμοποιήσε την παράμετρο -onion</translation>
+        <source>Error reading from database, shutting down.</source>
+        <translation>Σφάλμα ανάγνωσης από τη βάση δεδομένων, γίνεται τερματισμός.</translation>
     </message>
     <message>
         <source>Information</source>
         <translation>Πληροφορία</translation>
+    </message>
+    <message>
+        <source>Initialization sanity check failed. Bitcoin Core is shutting down.</source>
+        <translation>Η εκκίνηση ελέγχου ορθότητας απέτυχε.  Γίνεται τερματισμός του Bitcoin Core.</translation>
     </message>
     <message>
         <source>Invalid amount for -minrelaytxfee=&lt;amount&gt;: '%s'</source>
@@ -2458,24 +2655,20 @@
         <translation>Μη έγκυρο ποσό για την παράμετρο -paytxfee=&lt;amount&gt;: '%s'</translation>
     </message>
     <message>
-        <source>RPC SSL options: (see the Bitcoin Wiki for SSL setup instructions)</source>
-        <translation>Ρυθμίσεις SSL: (ανατρέξτε στο Bitcoin Wiki για οδηγίες ρυθμίσεων SSL)</translation>
+        <source>Node relay options:</source>
+        <translation>Επιλογές αναμετάδοσης κόμβου: </translation>
+    </message>
+    <message>
+        <source>RPC server options:</source>
+        <translation>Επιλογές διακομιστή RPC:</translation>
     </message>
     <message>
         <source>Send trace/debug info to console instead of debug.log file</source>
         <translation>Αποστολή πληροφοριών εντοπισμού σφαλμάτων στην κονσόλα αντί του αρχείου debug.log</translation>
     </message>
     <message>
-        <source>Set SSL root certificates for payment request (default: -system-)</source>
-        <translation>Ορίστε SSL root certificates για αίτηση πληρωμής (default: -system-)</translation>
-    </message>
-    <message>
-        <source>Set language, for example "de_DE" (default: system locale)</source>
-        <translation>Όρισε γλώσσα, για παράδειγμα "de_DE"(προεπιλογή:τοπικές ρυθμίσεις)</translation>
-    </message>
-    <message>
-        <source>Show splash screen on startup (default: 1)</source>
-        <translation>Εμφάνισε την οθόνη εκκίνησης κατά την εκκίνηση(προεπιλογή:1)</translation>
+        <source>Show all debugging options (usage: --help -help-debug)</source>
+        <translation>Προβολή όλων των επιλογών εντοπισμού σφαλμάτων (χρήση: --help -help-debug)</translation>
     </message>
     <message>
         <source>Shrink debug.log file on client startup (default: 1 when no -debug)</source>
@@ -2484,10 +2677,6 @@
     <message>
         <source>Signing transaction failed</source>
         <translation>Η υπογραφή συναλλαγής απέτυχε </translation>
-    </message>
-    <message>
-        <source>Start minimized</source>
-        <translation>Έναρξη ελαχιστοποιημένο</translation>
     </message>
     <message>
         <source>This is experimental software.</source>
@@ -2506,10 +2695,6 @@
         <translation>Η συναλλαγή ειναι πολύ μεγάλη </translation>
     </message>
     <message>
-        <source>Use UPnP to map the listening port (default: 1 when listening)</source>
-        <translation>Χρησιμοποίηση του  UPnP για την χρήση της πόρτας αναμονής (προεπιλογή:1)</translation>
-    </message>
-    <message>
         <source>Username for JSON-RPC connections</source>
         <translation>Όνομα χρήστη για τις συνδέσεις JSON-RPC</translation>
     </message>
@@ -2522,10 +2707,6 @@
         <translation>Μεταφορά όλων των συναλλαγών απο το πορτοφόλι</translation>
     </message>
     <message>
-        <source>on startup</source>
-        <translation>κατά την εκκίνηση</translation>
-    </message>
-    <message>
         <source>wallet.dat corrupt, salvage failed</source>
         <translation>Το αρχειο wallet.dat ειναι διεφθαρμένο, η διάσωση απέτυχε</translation>
     </message>
@@ -2536,18 +2717,6 @@
     <message>
         <source>Execute command when the best block changes (%s in cmd is replaced by block hash)</source>
         <translation>Εκτέλεσε την εντολή όταν το καλύτερο μπλοκ αλλάξει(%s στην εντολή αντικαθίσταται από το hash του μπλοκ)</translation>
-    </message>
-    <message>
-        <source>Upgrade wallet to latest format</source>
-        <translation>Αναβάθμισε το πορτοφόλι στην τελευταία έκδοση</translation>
-    </message>
-    <message>
-        <source>Rescan the block chain for missing wallet transactions</source>
-        <translation>Επανέλεγχος της αλυσίδας μπλοκ για απούσες συναλλαγές</translation>
-    </message>
-    <message>
-        <source>Use OpenSSL (https) for JSON-RPC connections</source>
-        <translation>Χρήση του OpenSSL (https) για συνδέσεις JSON-RPC</translation>
     </message>
     <message>
         <source>This help message</source>
@@ -2582,10 +2751,6 @@
         <translation>Σφάλμα φόρτωσης αρχείου wallet.dat</translation>
     </message>
     <message>
-        <source>Force safe mode (default: %u)</source>
-        <translation>Επιβολή ασφαλής λειτουργίας (προεπιλογή: %u)</translation>
-    </message>
-    <message>
         <source>Generate coins (default: %u)</source>
         <translation>Δημιουργία νομισμάτων (προκαθορισμος: %u)</translation>
     </message>
@@ -2600,10 +2765,6 @@
     <message>
         <source>Invalid -proxy address: '%s'</source>
         <translation>Δεν είναι έγκυρη η διεύθυνση διαμεσολαβητή: '%s'</translation>
-    </message>
-    <message>
-        <source>Server certificate file (default: %s)</source>
-        <translation>Αρχείο πιστοποιητικού του διακομιστή  (προεπιλογή: %s)</translation>
     </message>
     <message>
         <source>Specify connection timeout in milliseconds (minimum: 1, default: %d)</source>
