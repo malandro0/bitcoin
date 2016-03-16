@@ -17,10 +17,10 @@ uint256 CBlockHeader::GetHash() const
 
 int64_t CBlock::GetCost() const
 {
-    // This implements the cost = base_size * 4 + witness_size formula, using only
-    // serialization with and without witness data. As witness_size is equal to
-    // total_size - base_size, this formula is identical to:
-    // cost = base_size * 3 + total_size.
+    // This implements the cost = (stripped_size * 4) + witness_size formula,
+    // using only serialization with and without witness data. As witness_size
+    // is equal to total_size - stripped_size, this formula is identical to:
+    // cost = (stripped_size * 3) + total_size.
     return ((::GetSerializeSize(*this, SER_NETWORK, SERIALIZE_TRANSACTION_NO_WITNESS) * (WITNESS_SCALE_FACTOR - 1)) + ::GetSerializeSize(*this, SER_NETWORK, SERIALIZE_TRANSACTION_WITNESS));
 }
 
