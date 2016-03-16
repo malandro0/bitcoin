@@ -116,6 +116,9 @@ public:
         return block;
     }
 
+    /** Compute the consensus-critical block cost. */
+    int64_t GetCost() const;
+
     std::string ToString() const;
 };
 
@@ -153,8 +156,5 @@ struct CBlockLocator
         return vHave.empty();
     }
 };
-
-/** Compute the consensus-critical block cost (see BIP 141). */
-int64_t GetBlockCost(const CBlock& tx);
 
 #endif // BITCOIN_PRIMITIVES_BLOCK_H
