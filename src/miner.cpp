@@ -44,6 +44,7 @@ using namespace std;
 
 uint64_t nLastBlockTx = 0;
 uint64_t nLastBlockSize = 0;
+uint64_t nLastBlockCost = 0;
 
 class ScoreCompare
 {
@@ -120,6 +121,7 @@ CBlockTemplate* CreateNewBlock(const CChainParams& chainparams, const CScript& s
     std::priority_queue<CTxMemPool::txiter, std::vector<CTxMemPool::txiter>, ScoreCompare> clearedTxs;
     bool fPrintPriority = GetBoolArg("-printpriority", DEFAULT_PRINTPRIORITY);
     uint64_t nBlockSize = 1000;
+    uint64_t nBlockCost = nBlockSize * WITNESS_SCALE_FACTOR;
     uint64_t nBlockTx = 0;
     int64_t nBlockSigOpsCost = 400;
     int lastFewTxs = 0;
@@ -235,6 +237,8 @@ CBlockTemplate* CreateNewBlock(const CChainParams& chainparams, const CScript& s
             if (!IsFinalTx(tx, nHeight, nLockTimeCutoff))
                 continue;
 
+            int64_t nTxCost = GetTransactionCost(tx);
+
             int64_t nTxSigOpsCost = iter->GetSigOpCost();
             if (nBlockSigOpsCost + nTxSigOpsCost >= MAX_BLOCK_SIGOPS_COST) {
                 if (nBlockSigOpsCost > MAX_BLOCK_SIGOPS_COST - 8) {
@@ -249,6 +253,7 @@ CBlockTemplate* CreateNewBlock(const CChainParams& chainparams, const CScript& s
             pblocktemplate->vTxFees.push_back(nTxFees);
             pblocktemplate->vTxSigOpsCost.push_back(nTxSigOpsCost);
             nBlockSize += nTxSize;
+            nBlockCost += nTxCost;
             ++nBlockTx;
             nBlockSigOpsCost += nTxSigOpsCost;
             nFees += nTxFees;
@@ -285,6 +290,7 @@ CBlockTemplate* CreateNewBlock(const CChainParams& chainparams, const CScript& s
         }
         nLastBlockTx = nBlockTx;
         nLastBlockSize = nBlockSize;
+        nLastBlockCost = nBlockCost;
         LogPrintf("CreateNewBlock(): total size %u txs: %u fees: %ld sigops %d\n", nBlockSize, nBlockTx, nFees, nBlockSigOpsCost);
 
         // Compute final coinbase transaction.
