@@ -33,7 +33,7 @@ typedef std::map<const CBlockIndex*, ThresholdState> ThresholdConditionCache;
 struct BIP9DeploymentInfo {
     /** Deployment name */
     const char *name;
-    /** Whether GBT clients can safely ignore this rule in simplified usage */
+    /** Whether GBT clients can safely ignore this rule in simplified usage; if false, they will be sent an empty template instead (also limited to simplified usage) */
     bool gbt_force;
 };
 

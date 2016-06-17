@@ -579,6 +579,7 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
 
         transactions.push_back(entry);
     }
+    int64_t nBlockReward = pblock->vtx[0].vout[0].nValue;
 
     UniValue aux(UniValue::VOBJ);
     aux.push_back(Pair("flags", HexStr(COINBASE_FLAGS.begin(), COINBASE_FLAGS.end())));
@@ -623,14 +624,21 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
             {
                 // Add to rules only
                 const struct BIP9DeploymentInfo& vbinfo = VersionBitsDeploymentInfo[pos];
-                aRules.push_back(gbt_vb_name(pos));
                 if (setClientRules.find(vbinfo.name) == setClientRules.end()) {
                     // Not supported by the client; make sure it's safe to proceed
                     if (!vbinfo.gbt_force) {
-                        // If we do anything other than throw an exception here, be sure version/force isn't sent to old clients
-                        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Support for '%s' rule requires explicit client support", vbinfo.name));
+                        // Currently, the only case here is segwit, which allows for old miners to produce witness-free blocks safely.
+                        // Since an error could cause such a miner to failover to an old node/pool, it seems better to have them use this up-to-date, fully-verifying node even if it means producing empty blocks.
+                        // We therefore give them an empty block, and add a bogus inherenty-unsupported "rule" so they know not to try to merge the template.
+                        // The "segwit" name is not safe to use in the rules list, in case the template somehow gets to a real segwit-aware miner (eg, a proxy of some sort which may not understand witness transactions).
+                        transactions = UniValue(UniValue::VARR);
+                        nBlockReward = GetBlockSubsidy(pindexPrev->nHeight+1, consensusParams);
+                        aRules.push_back("unsupported");
+                        // Note that this prevents adding "!segwit" to the rules list.
+                        break;
                     }
                 }
+                aRules.push_back(gbt_vb_name(pos));
                 break;
             }
         }
@@ -651,7 +659,7 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
     result.push_back(Pair("previousblockhash", pblock->hashPrevBlock.GetHex()));
     result.push_back(Pair("transactions", transactions));
     result.push_back(Pair("coinbaseaux", aux));
-    result.push_back(Pair("coinbasevalue", (int64_t)pblock->vtx[0].vout[0].nValue));
+    result.push_back(Pair("coinbasevalue", nBlockReward));
     result.push_back(Pair("longpollid", chainActive.Tip()->GetBlockHash().GetHex() + i64tostr(nTransactionsUpdatedLast)));
     result.push_back(Pair("target", hashTarget.GetHex()));
     result.push_back(Pair("mintime", (int64_t)pindexPrev->GetMedianTimePast()+1));
