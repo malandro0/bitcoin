@@ -62,6 +62,7 @@ CBlockIndex CreateBlockIndex(int nHeight)
     CBlockIndex index;
     index.nHeight = nHeight;
     index.pprev = chainActive.Tip();
+    index.InitialiseFromPrev();
     return index;
 }
 
@@ -209,7 +210,7 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
     {
         CBlock *pblock = &pblocktemplate->block; // pointer for convenience
         pblock->nDeploymentSoft = 1;
-        pblock->nTime = chainActive.Tip()->GetMedianTimePast()+1;
+        pblock->nTTime = chainActive.Tip()->GetMedianTimePast()+1;
         CMutableTransaction txCoinbase(pblock->vtx[0]);
         txCoinbase.nVersion = 1;
         txCoinbase.vin[0].scriptSig = CScript();
@@ -370,6 +371,7 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
         pcoinsTip->SetBestBlock(next->GetBlockHash());
         next->pprev = prev;
         next->nHeight = prev->nHeight + 1;
+        next->InitialiseFromPrev();
         next->BuildSkip();
         chainActive.SetTip(next);
     }
@@ -383,6 +385,7 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
         pcoinsTip->SetBestBlock(next->GetBlockHash());
         next->pprev = prev;
         next->nHeight = prev->nHeight + 1;
+        next->InitialiseFromPrev();
         next->BuildSkip();
         chainActive.SetTip(next);
     }
@@ -432,10 +435,10 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
     BOOST_CHECK(!TestSequenceLocks(tx, flags)); // Sequence locks fail
 
     for (int i = 0; i < CBlockIndex::nMedianTimeSpan; i++)
-        chainActive.Tip()->GetAncestor(chainActive.Tip()->nHeight - i)->nTime += 512; //Trick the MedianTimePast
+        chainActive.Tip()->GetAncestor(chainActive.Tip()->nHeight - i)->nTTime += 512; //Trick the MedianTimePast
     BOOST_CHECK(SequenceLocks(tx, flags, &prevheights, CreateBlockIndex(chainActive.Tip()->nHeight + 1))); // Sequence locks pass 512 seconds later
     for (int i = 0; i < CBlockIndex::nMedianTimeSpan; i++)
-        chainActive.Tip()->GetAncestor(chainActive.Tip()->nHeight - i)->nTime -= 512; //undo tricked MTP
+        chainActive.Tip()->GetAncestor(chainActive.Tip()->nHeight - i)->nTTime -= 512; //undo tricked MTP
 
     // absolute height locked
     tx.vin[0].prevout.hash = txFirst[2]->GetHash();
@@ -483,7 +486,7 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
     delete pblocktemplate;
     // However if we advance height by 1 and time by 512, all of them should be mined
     for (int i = 0; i < CBlockIndex::nMedianTimeSpan; i++)
-        chainActive.Tip()->GetAncestor(chainActive.Tip()->nHeight - i)->nTime += 512; //Trick the MedianTimePast
+        chainActive.Tip()->GetAncestor(chainActive.Tip()->nHeight - i)->nTTime += 512; //Trick the MedianTimePast
     chainActive.Tip()->nHeight++;
     SetMockTime(chainActive.Tip()->GetMedianTimePast() + 1);
 

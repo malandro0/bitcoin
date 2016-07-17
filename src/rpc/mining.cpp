@@ -660,7 +660,7 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
     result.push_back(Pair("sigoplimit", (int64_t)MAX_BLOCK_SIGOPS_COST));
     result.push_back(Pair("sizelimit", (int64_t)MAX_BLOCK_SERIALIZED_SIZE));
     result.push_back(Pair("costlimit", (int64_t)MAX_BLOCK_COST));
-    result.push_back(Pair("curtime", pblock->GetBlockTime()));
+    result.push_back(Pair("curtime", pblock->GetBlockTime(pindexPrev->GetBlockTime())));
     result.push_back(Pair("bits", strprintf("%08x", pblock->nBits)));
     result.push_back(Pair("height", (int64_t)(pindexPrev->nHeight+1)));
     if (!pblocktemplate->vchCoinbaseCommitment.empty()) {
