@@ -91,7 +91,7 @@ static void JSONErrorReply(HTTPRequest* req, const UniValue& objError, const Uni
 
 //This function checks username and password against -rpcauth
 //entries from config file.
-static bool multiUserAuthorized(std::string strUserPass)
+static bool multiUserAuthorized(std::string strUserPass, std::string& out_wallet_restriction)
 {
     if (strUserPass.find(':') == std::string::npos) {
         return false;
@@ -116,13 +116,14 @@ static bool multiUserAuthorized(std::string strUserPass)
         std::string strHashFromPass = HexStr(hexvec);
 
         if (TimingResistantEqual(strHashFromPass, strHash)) {
+            out_wallet_restriction = (vFields.size() > 3) ? vFields[3] : "";
             return true;
         }
     }
     return false;
 }
 
-static bool RPCAuthorized(const std::string& strAuth, std::string& strAuthUsernameOut)
+static bool RPCAuthorized(const std::string& strAuth, std::string& strAuthUsernameOut, std::string& out_wallet_restriction)
 {
     if (strRPCUserColonPass.empty()) // Belt-and-suspenders measure if InitRPCAuthentication was not called
         return false;
@@ -139,9 +140,10 @@ static bool RPCAuthorized(const std::string& strAuth, std::string& strAuthUserna
 
     //Check if authorized under single-user field
     if (TimingResistantEqual(strUserPass, strRPCUserColonPass)) {
+        out_wallet_restriction = "";
         return true;
     }
-    return multiUserAuthorized(strUserPass);
+    return multiUserAuthorized(strUserPass, out_wallet_restriction);
 }
 
 static bool HTTPReq_JSONRPC(const std::any& context, HTTPRequest* req)
@@ -162,7 +164,7 @@ static bool HTTPReq_JSONRPC(const std::any& context, HTTPRequest* req)
     JSONRPCRequest jreq;
     jreq.context = context;
     jreq.peerAddr = req->GetPeer().ToStringAddrPort();
-    if (!RPCAuthorized(authHeader.second, jreq.authUser)) {
+    if (!RPCAuthorized(authHeader.second, jreq.authUser, jreq.m_wallet_restriction)) {
         LogPrintf("ThreadRPCServer incorrect password attempt from %s\n", jreq.peerAddr);
 
         /* Deter brute-forcing
@@ -258,9 +260,9 @@ static bool InitRPCAuthentication()
         for (const std::string& rpcauth : gArgs.GetArgs("-rpcauth")) {
             std::vector<std::string> fields{SplitString(rpcauth, ':')};
             const std::vector<std::string> salt_hmac{SplitString(fields.back(), '$')};
-            if (fields.size() == 2 && salt_hmac.size() == 2) {
-                fields.pop_back();
-                fields.insert(fields.end(), salt_hmac.begin(), salt_hmac.end());
+            if ((fields.size() >= 2 && fields.size() <= 3) && salt_hmac.size() == 2) {
+                fields.erase(fields.begin() + 1);
+                fields.insert(fields.begin() + 1, salt_hmac.begin(), salt_hmac.end());
                 g_rpcauth.push_back(fields);
             } else {
                 LogPrintf("Invalid -rpcauth argument.\n");
@@ -277,7 +279,7 @@ static bool InitRPCAuthentication()
             while (std::getline(file, rpcauth)) {
                 std::vector<std::string> fields{SplitString(rpcauth, ':')};
                 const std::vector<std::string> salt_hmac{SplitString(fields.back(), '$')};
-                if (fields.size() == 2 && salt_hmac.size() == 2) {
+                if ((fields.size() >= 2 && fields.size() <= 3) && salt_hmac.size() == 2) {
                     fields.pop_back();
                     fields.insert(fields.end(), salt_hmac.begin(), salt_hmac.end());
                     g_rpcauth.push_back(fields);
