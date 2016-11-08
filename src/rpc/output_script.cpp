@@ -147,7 +147,7 @@ static RPCHelpMan createmultisig()
             // Construct using pay-to-script-hash:
             FillableSigningProvider keystore;
             CScript inner;
-            const CTxDestination dest = AddAndGetMultisigDestination(required, pubkeys, output_type, keystore, inner);
+            const CTxDestination dest = AddAndGetMultisigDestination(required, pubkeys, output_type, keystore, inner, /*sort=*/false);
 
             // Make the descriptor
             std::unique_ptr<Descriptor> descriptor = InferDescriptor(GetScriptForDestination(dest), keystore);
