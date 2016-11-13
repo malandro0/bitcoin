@@ -619,7 +619,7 @@ public:
     TxMempoolInfo info(const uint256& hash) const;
     std::vector<TxMempoolInfo> infoAll() const;
 
-    void FindScriptPubKey(const std::set<CScript>& setscriptNeedles, std::map<uint256, CCoins>& outResults);
+    void FindScriptPubKey(const std::set<CScript>& needles, std::map<uint256, CCoins>& out_results);
 
     /** Estimate fee rate needed to get into the next nBlocks
      *  If no answer can be given at nBlocks, return an estimate
