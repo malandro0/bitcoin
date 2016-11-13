@@ -74,8 +74,6 @@ std::string DecodeDumpString(const std::string &str) {
     return ret.str();
 }
 
-void ParseWIFPrivKey(const std::string strSecret, CKey& key, CPubKey& pubkey);
-
 UniValue importprivkey(const UniValue& params, bool fHelp)
 {
     if (!EnsureWalletIsAvailable(fHelp))
@@ -121,7 +119,7 @@ UniValue importprivkey(const UniValue& params, bool fHelp)
 
     CKey key;
     CPubKey pubkey;
-    ParseWIFPrivKey(strSecret, key, pubkey);
+    ParseWIFPrivKey(strSecret, key, &pubkey);
     CKeyID vchAddress = pubkey.GetID();
     {
         pwalletMain->MarkDirty();
@@ -459,12 +457,13 @@ UniValue importwallet(const UniValue& params, bool fHelp)
         boost::split(vstr, line, boost::is_any_of(" "));
         if (vstr.size() < 2)
             continue;
-        CBitcoinSecret vchSecret;
-        if (!vchSecret.SetString(vstr[0]))
+        CKey key;
+        CPubKey pubkey;
+        try {
+            ParseWIFPrivKey(vstr[0], key, &pubkey);
+        } catch (...) {
             continue;
-        CKey key = vchSecret.GetKey();
-        CPubKey pubkey = key.GetPubKey();
-        assert(key.VerifyPubKey(pubkey));
+        }
         CKeyID keyid = pubkey.GetID();
         if (pwalletMain->HaveKey(keyid)) {
             LogPrintf("Skipping import of %s (key already present)\n", CBitcoinAddress(keyid).ToString());
