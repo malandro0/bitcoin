@@ -6,6 +6,7 @@
 #include "amount.h"
 #include "base58.h"
 #include "chain.h"
+#include "coincontrol.h"
 #include "consensus/validation.h"
 #include "core_io.h"
 #include "init.h"
@@ -17,6 +18,7 @@
 #include "rpc/server.h"
 #include "script/sign.h"
 #include "timedata.h"
+#include "txdb.h"
 #include "util.h"
 #include "utilmoneystr.h"
 #include "wallet.h"
@@ -965,56 +967,54 @@ UniValue sendmany(const UniValue& params, bool fHelp)
 
 UniValue sweepprivkeys(const UniValue& params, bool fHelp)
 {
-    CWallet *&pwallet = pwalletMain;
-    if (!EnsureWalletIsAvailable(fHelp))
+    CWallet * const pwallet = pwalletMain;
+    if (!EnsureWalletIsAvailable(fHelp)) {
         return NullUniValue;
+    }
 
     if (fHelp || params.size() != 1)
-        throw runtime_error(
+        throw std::runtime_error(
             "sweepprivkeys {\"privkeys\": [\"bitcoinprivkey\",...], other options}\n"
             "\nSends bitcoins controlled by private key to specified destinations.\n"
             "\nOptions:\n"
             "  \"privkeys\":[\"bitcoinprivkey\",...]   (array of strings, required) An array of WIF private key(s)\n"
             "  \"label\":\"actuallabelname\"           (string, optional) Label for received bitcoins\n"
-            "  \"comment\":\"description\"             (string, optional) Local comment for the receive transaction\n"
         );
 
     // NOTE: It isn't safe to sweep-and-send in a single action, since this would leave the send missing from the transaction history
 
-    RPCTypeCheck(params, boost::assign::list_of(UniValue::VOBJ));
+    RPCTypeCheck(params, {UniValue::VOBJ});
 
     // Parse options
-    std::set<CScript> setscriptSearch;
+    std::set<CScript> needles;
     CBasicKeyStore tempKeystore;
     CMutableTransaction tx;
-    std::string strLabel, strComment;
-    CAmount nTotalIn = 0;
+    std::string label;
+    CAmount total_in = 0;
     for (const std::string& optname : params[0].getKeys()) {
         const UniValue& optval = params[0][optname];
         if (optname == "privkeys") {
             const UniValue& privkeys_a = optval.get_array();
             for (size_t privkey_i = 0; privkey_i < privkeys_a.size(); ++privkey_i) {
                 const UniValue& privkey_wif = privkeys_a[privkey_i];
-                std::string strSecret = privkey_wif.get_str();
+                std::string wif_secret = privkey_wif.get_str();
                 CKey key;
                 CPubKey pubkey;
-                ParseWIFPrivKey(strSecret, key, pubkey);
+                ParseWIFPrivKey(wif_secret, key, &pubkey);
 
                 tempKeystore.AddKey(key);
-                CKeyID vchAddress = pubkey.GetID();
-                CScript script = GetScriptForDestination(vchAddress);
+                CKeyID address = pubkey.GetID();
+                CScript script = GetScriptForDestination(address);
                 if (!script.empty()) {
-                    setscriptSearch.insert(script);
+                    needles.insert(script);
                 }
                 script = GetScriptForRawPubKey(pubkey);
                 if (!script.empty()) {
-                    setscriptSearch.insert(script);
+                    needles.insert(script);
                 }
             }
         } else if (optname == "label") {
-            strLabel = AccountFromValue(optval.get_str());
-        } else if (optname == "comment") {
-            strComment = optval.get_str();
+            label = AccountFromValue(optval.get_str());
         } else {
             throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Unrecognised option '%s'", optname));
         }
@@ -1031,25 +1031,25 @@ UniValue sweepprivkeys(const UniValue& params, bool fHelp)
 
     // Reserve the key we will be using
     CReserveKey reservekey(pwallet);
-    CPubKey vchPubKey;
-    if (!reservekey.GetReservedKey(vchPubKey)) {
+    CPubKey pubkey;
+    if (!reservekey.GetReservedKey(pubkey)) {
         throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
     }
 
     // Scan UTXO set for inputs
-    std::vector<CTxOut> vInTXOs;
+    std::vector<CTxOut> input_txos;
     {
         // Collect all possible inputs
-        std::map<uint256, CCoins> mapcoins;
+        std::map<uint256, CCoins> coins;
         {
             LOCK(cs_main);
-            mempool.FindScriptPubKey(setscriptSearch, mapcoins);
+            mempool.FindScriptPubKey(needles, coins);
             FlushStateToDisk();
-            pcoinsTip->FindScriptPubKey(setscriptSearch, mapcoins);
+            pcoinsTip->FindScriptPubKey(needles, coins);
         }
 
         // Add them as inputs to the transaction, and count the total value
-        for (auto& it : mapcoins) {
+        for (auto& it : coins) {
             const uint256& hash = it.first;
             const CCoins& coins = it.second;
             for (size_t txo_n = 0; txo_n < coins.vout.size(); ++txo_n) {
@@ -1058,46 +1058,50 @@ UniValue sweepprivkeys(const UniValue& params, bool fHelp)
                     continue;
                 }
                 tx.vin.emplace_back(hash, txo_n);
-                vInTXOs.push_back(txo);
-                nTotalIn += txo.nValue;
+                input_txos.push_back(txo);
+                total_in += txo.nValue;
             }
         }
     }
 
-    if (nTotalIn == 0) {
+    if (total_in == 0) {
         throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "No value to sweep");
     }
 
-    CKeyID keyID = vchPubKey.GetID();
-    CTxDestination txdest = CBitcoinAddress(keyID).Get();
+    CKeyID keyID = pubkey.GetID();
 
-    tx.vout.emplace_back(nTotalIn, GetScriptForDestination(txdest));
+    tx.vout.emplace_back(total_in, GetScriptForDestination(keyID));
 
     while (true) {
         if (tx.vout[0].IsDust(::minRelayTxFee)) {
             throw JSONRPCError(RPC_VERIFY_REJECTED, "Swept value would be dust");
         }
-        for (size_t nIn = 0; nIn < tx.vin.size(); ++nIn) {
+        for (size_t input_index = 0; input_index < tx.vin.size(); ++input_index) {
             SignatureData sigdata;
-            if (!ProduceSignature(MutableTransactionSignatureCreator(&tempKeystore, &tx, nIn, vInTXOs[nIn].nValue, SIGHASH_ALL), vInTXOs[nIn].scriptPubKey, sigdata)) {
+            if (!ProduceSignature(MutableTransactionSignatureCreator(&tempKeystore, &tx, input_index, input_txos[input_index].nValue, SIGHASH_ALL), input_txos[input_index].scriptPubKey, sigdata)) {
                 throw JSONRPCError(RPC_MISC_ERROR, "Failed to sign");
             }
-            UpdateTransaction(tx, nIn, sigdata);
+            UpdateTransaction(tx, input_index, sigdata);
         }
-        int64_t nBytes = GetVirtualTransactionSize(tx);
-        CAmount nFeeNeeded = pwallet->GetMinimumFee(nBytes, nTxConfirmTarget, mempool);
-        const CAmount nTotalOut = tx.vout[0].nValue;
-        if (nFeeNeeded <= nTotalIn - nTotalOut) {
+        int64_t tx_vsize = GetVirtualTransactionSize(tx);
+        CAmount fee_needed = CWallet::GetMinimumFee(tx_vsize, nTxConfirmTarget, ::mempool);
+        const CAmount total_out = tx.vout[0].nValue;
+        if (fee_needed <= total_in - total_out) {
             break;
         }
-        tx.vout[0].nValue = nTotalIn - nFeeNeeded;
+        tx.vout[0].nValue = total_in - fee_needed;
     }
 
-    CTransaction txFinal(tx);
-    pwallet->SetAddressBook(keyID, strLabel, "receive");
+    CTransaction final_tx(tx);
+    pwallet->SetAddressBook(keyID, label, "receive");
 
     CValidationState state;
-    if (!AcceptToMemoryPool(mempool, state, txFinal, true, NULL, false, maxTxFee)) {
+    bool rv;
+    {
+        LOCK(cs_main);
+        rv = AcceptToMemoryPool(mempool, state, final_tx, true /* fLimitFree */, nullptr /* fMissingInputs */, false /* fOverrideMempoolLimit */, maxTxFee /* nAbsurdFee */);
+    }
+    if (!rv) {
         pwallet->DelAddressBook(keyID);
         if (state.IsInvalid()) {
             throw JSONRPCError(RPC_TRANSACTION_REJECTED, strprintf("%i: %s", state.GetRejectCode(), state.GetRejectReason()));
@@ -1107,7 +1111,9 @@ UniValue sweepprivkeys(const UniValue& params, bool fHelp)
     }
     reservekey.KeepKey();
 
-    return txFinal.GetHash().GetHex();
+    RelayTransaction(final_tx);
+
+    return final_tx.GetHash().GetHex();
 }
 
 // Defined in rpc/misc.cpp
