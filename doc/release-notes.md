@@ -61,11 +61,12 @@ Removal of Priority Estimation
   converted to the new format which is not readable by prior versions of the
   software.
 
-- The concept of "priority" (coin age) transactions is planned to be removed in
-  the next major version. To prepare for this, the default for the rate limit of
-  priority transactions (`-limitfreerelay`) has been set to `0` kB/minute. This
-  is not to be confused with the `prioritisetransaction` RPC which will remain
-  supported for adding fee deltas to transactions.
+- Support for "priority" (coin age) transaction sorting for mining is
+  considered deprecated in Core and will be removed in the next major version.
+  Miners who wish to retain this feature should switch to Bitcoin Knots, where
+  it will continue to be maintained and supported for the time being. This is
+  not to be confused with the `prioritisetransaction` RPC which will remain
+  supported by Core for adding fee deltas to transactions.
 
 P2P connection management
 --------------------------
