@@ -258,8 +258,7 @@ bool RPCConsole::RPCExecuteCommandLine(std::string &strResult, const std::string
                 case ' ': case ',': case '\t':
                     if(state == STATE_ARGUMENT) // Space ends argument
                     {
-                        if (curarg.size())
-                            stack.back().push_back(curarg);
+                        stack.back().push_back(curarg);
                         curarg.clear();
                     }
                     state = STATE_EATING_SPACES;
