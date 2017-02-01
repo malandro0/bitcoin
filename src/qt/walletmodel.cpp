@@ -747,6 +747,11 @@ bool WalletModel::hdEnabled() const
     return wallet->IsHDEnabled();
 }
 
+bool WalletModel::hotKeysDisabled() const
+{
+    return (wallet->IsWalletFlagSet(WALLET_FLAG_DISABLE_HOT_KEYS));
+}
+
 int WalletModel::getDefaultConfirmTarget() const
 {
     return nTxConfirmTarget;

@@ -213,6 +213,7 @@ public:
     static bool isWalletEnabled();
 
     bool hdEnabled() const;
+    bool hotKeysDisabled() const;
 
     int getDefaultConfirmTarget() const;
 
