@@ -704,6 +704,8 @@ private:
     /* HD derive new child key (on internal or external chain) */
     void DeriveNewChildKey(CWalletDB &walletdb, CKeyMetadata& metadata, CKey& secret, bool internal = false);
 
+    std::atomic<uint64_t> walletFlags;
+
     std::set<int64_t> setInternalKeyPool;
     std::set<int64_t> setExternalKeyPool;
     int64_t m_max_keypool_index;
@@ -794,6 +796,7 @@ public:
         nRelockTime = 0;
         fAbortRescan = false;
         fScanningWallet = false;
+        walletFlags = 0;
     }
 
     std::map<uint256, CWalletTx> mapWallet;
@@ -1108,6 +1111,15 @@ public:
        caller must ensure the current wallet version is correct before calling
        this function). */
     bool SetHDMasterKey(const CPubKey& key);
+
+    /* set a single wallet flag */
+    void AddWalletFlag(uint64_t flags);
+
+    /* check if a certain wallet flag is set */
+    bool IsWalletFlagSet(uint64_t flag);
+
+    /* overwrite all flags by the given unit64_t */
+    void SetWalletFlags(uint64_t overwriteFlags, bool memOnly);
 };
 
 /** A key allocated from the key pool. */

@@ -508,6 +508,10 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
                 strErr = "Error reading wallet database: SetHDChain failed";
                 return false;
             }
+        } else if (strType == "flags") {
+            uint64_t flags;
+            ssValue >> flags;
+            pwallet->SetWalletFlags(flags, true);
         }
     } catch (...)
     {
@@ -838,6 +842,11 @@ bool CWalletDB::EraseDestData(const std::string &address, const std::string &key
 bool CWalletDB::WriteHDChain(const CHDChain& chain)
 {
     return WriteIC(std::string("hdchain"), chain);
+}
+
+bool CWalletDB::WriteWalletFlags(const uint64_t flags)
+{
+    return WriteIC(std::string("flags"), flags);
 }
 
 bool CWalletDB::TxnBegin()

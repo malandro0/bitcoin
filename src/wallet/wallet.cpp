@@ -1447,6 +1447,27 @@ bool CWallet::IsHDEnabled() const
     return !hdChain.masterKeyID.IsNull();
 }
 
+void CWallet::AddWalletFlag(uint64_t flags)
+{
+    walletFlags |= flags;
+    if (!CWalletDB(*dbw).WriteWalletFlags(walletFlags)) {
+        throw std::runtime_error(std::string(__func__) + ": writing wallet flags failed");
+    }
+}
+
+bool CWallet::IsWalletFlagSet(uint64_t flag)
+{
+    return (walletFlags & flag);
+}
+
+void CWallet::SetWalletFlags(uint64_t overwriteFlags, bool memonly)
+{
+    walletFlags = overwriteFlags;
+    if (!memonly && !CWalletDB(*dbw).WriteWalletFlags(walletFlags)) {
+        throw std::runtime_error(std::string(__func__) + ": writing wallet flags failed");
+    }
+}
+
 int64_t CWalletTx::GetTxTime() const
 {
     int64_t n = nTimeSmart;
