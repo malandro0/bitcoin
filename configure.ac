@@ -131,9 +131,15 @@ AC_ARG_ENABLE([extended-rpc-tests],
 
 AC_ARG_WITH([qrencode],
   [AS_HELP_STRING([--with-qrencode],
-  [enable QR code support (default is yes if qt is enabled and libqrencode is found)])],
+  [enable QR code generation (default is yes if qt is enabled and libqrencode is found)])],
   [use_qr=$withval],
   [use_qr=auto])
+
+AC_ARG_WITH([zbar],
+  [AS_HELP_STRING([--with-zbar],
+  [enable QR code scanning (default is yes if qt is enabled and ZBar is found)])],
+  [use_zbar=$withval],
+  [use_zbar=auto])
 
 AC_ARG_ENABLE([hardening],
   [AS_HELP_STRING([--disable-hardening],
@@ -815,6 +821,9 @@ if test x$use_pkgconfig = xyes; then
       if test x$use_qr != xno; then
         BITCOIN_QT_CHECK([PKG_CHECK_MODULES([QR], [libqrencode], [have_qrencode=yes], [have_qrencode=no])])
       fi
+      if test x$use_zbar != xno; then
+        BITCOIN_QT_CHECK([PKG_CHECK_MODULES([ZBar], [zbar], [have_zbar=yes], [have_zbar=no])])
+      fi
       if test x$build_bitcoin_utils$build_bitcoind$bitcoin_enable_qt$use_tests != xnononono; then
         PKG_CHECK_MODULES([EVENT], [libevent],, [AC_MSG_ERROR(libevent not found.)])
         if test x$TARGET_OS != xwindows; then
@@ -875,6 +884,10 @@ else
   if test x$use_qr != xno; then
     BITCOIN_QT_CHECK([AC_CHECK_LIB([qrencode], [main],[QR_LIBS=-lqrencode], [have_qrencode=no])])
     BITCOIN_QT_CHECK([AC_CHECK_HEADER([qrencode.h],, have_qrencode=no)])
+  fi
+  if test x$use_zbar != xno; then
+    BITCOIN_QT_CHECK([AC_CHECK_LIB([zbar], [main],[ZBar_LIBS=-lzbar], [have_zbar=no])])
+    BITCOIN_QT_CHECK([AC_CHECK_HEADER([zbar.h],, have_zbar=no)])
   fi
 fi
 
@@ -1020,7 +1033,7 @@ if test x$bitcoin_enable_qt != xno; then
   AC_MSG_RESULT($bitcoin_enable_qt_dbus)
 
   dnl enable qr support
-  AC_MSG_CHECKING([whether to build GUI with support for QR codes])
+  AC_MSG_CHECKING([whether to build GUI with support for generating QR codes])
   if test x$have_qrencode = xno; then
     if test x$use_qr = xyes; then
      AC_MSG_ERROR("QR support requested but cannot be built. use --without-qrencode")
@@ -1033,6 +1046,25 @@ if test x$bitcoin_enable_qt != xno; then
       use_qr=yes
     else
       AC_MSG_RESULT(no)
+    fi
+  fi
+
+  dnl QR Code scanning
+  AC_MSG_CHECKING([whether to build GUI with support for scanning QR codes])
+  if test x$use_zbar = xno; then
+    AC_MSG_RESULT(no)
+  else
+    if test x$have_zbar = xyes; then
+      use_zbar=yes
+      AC_MSG_RESULT(yes)
+    else
+      AC_MSG_RESULT(no)
+      if test x$use_zbar = xyes; then
+        AC_MSG_ERROR([ZBar not found (required for QR Code scanning)])
+      fi
+    fi
+    if test x$use_zbar = xyes; then
+      AC_DEFINE([USE_ZBAR],[1],[Define if QR Code scanning should be compiled in])
     fi
   fi
 
@@ -1080,6 +1112,7 @@ AM_CONDITIONAL([ENABLE_QT],[test x$bitcoin_enable_qt = xyes])
 AM_CONDITIONAL([ENABLE_QT_TESTS],[test x$BUILD_TEST_QT = xyes])
 AM_CONDITIONAL([ENABLE_BENCH],[test x$use_bench = xyes])
 AM_CONDITIONAL([USE_QRCODE], [test x$use_qr = xyes])
+AM_CONDITIONAL([USE_ZBAR], [test x$use_zbar = xyes])
 AM_CONDITIONAL([USE_LCOV],[test x$use_lcov = xyes])
 AM_CONDITIONAL([GLIBC_BACK_COMPAT],[test x$use_glibc_compat = xyes])
 AM_CONDITIONAL([HARDEN],[test x$use_hardening = xyes])
@@ -1192,7 +1225,8 @@ echo "  with wallet   = $enable_wallet"
 echo "  with gui / qt = $bitcoin_enable_qt"
 if test x$bitcoin_enable_qt != xno; then
     echo "    qt version  = $bitcoin_qt_got_major_vers"
-    echo "    with qr     = $use_qr"
+    echo "    with qr gen = $use_qr"
+    echo "    with qr scan= $use_zbar"
 fi
 echo "  with zmq      = $use_zmq"
 echo "  with test     = $use_tests"

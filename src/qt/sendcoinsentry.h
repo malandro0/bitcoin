@@ -60,6 +60,9 @@ private Q_SLOTS:
     void on_addressBookButton_clicked();
     void on_pasteButton_clicked();
     void updateDisplayUnit();
+#ifdef USE_ZBAR
+    void qrScan();
+#endif
 
 private:
     SendCoinsRecipient recipient;

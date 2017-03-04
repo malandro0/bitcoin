@@ -42,6 +42,16 @@ SendCoinsEntry::SendCoinsEntry(const PlatformStyle *_platformStyle, QWidget *par
     // just a label for displaying bitcoin address(es)
     ui->payTo_is->setFont(GUIUtil::fixedPitchFont());
 
+#ifdef USE_ZBAR
+    QToolButton * const qrScanButton = new QToolButton(this);
+    qrScanButton->setToolTip(tr("Scan a QR Code");
+    qrScanButton->setIcon(platformStyle->SingleColorIcon(":/icons/eye_plus"));
+    qrScanButton->setIconSize(QSize(22, 22));
+    qrScanButton->setShortcut(QKeySequence(tr("Alt+S", "Shortcut to scan a QR Code for sending to")));
+    ui->payToLayout->insertWidget(ui->payToLayout->indexOf(ui->addressBookButton), qrScanButton);
+    connect(qrScanButton, SIGNAL(clicked()), this, SLOT(qrScan()));
+#endif
+
     // Connect signals
     connect(ui->payAmount, SIGNAL(valueChanged()), this, SIGNAL(payAmountChanged()));
     connect(ui->checkboxSubtractFeeFromAmount, SIGNAL(toggled(bool)), this, SIGNAL(subtractFeeFromAmountChanged()));
@@ -116,6 +126,14 @@ void SendCoinsEntry::deleteClicked()
 {
     Q_EMIT removeEntry(this);
 }
+
+#ifdef USE_ZBAR
+void SendCoinsEntry::qrScan()
+{
+    QRScanDialog dlg(this);
+    
+}
+#endif
 
 bool SendCoinsEntry::validate()
 {
