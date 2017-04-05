@@ -18,8 +18,10 @@ static const char DB_COINS = 'c';
 static const char DB_BLOCK_FILES = 'f';
 static const char DB_TXINDEX = 't';
 static const char DB_BLOCK_INDEX = 'b';
+static const char DB_UTXO_SCRIPT_INDEX = 'u';
 
 static const char DB_BEST_BLOCK = 'B';
+static const char DB_BEST_BLOCK_UTXO_SCRIPT_INDEX = 'U';
 static const char DB_FLAG = 'F';
 static const char DB_REINDEX_FLAG = 'R';
 static const char DB_LAST_BLOCK = 'l';
@@ -43,13 +45,36 @@ uint256 CCoinsViewDB::GetBestBlock() const {
         return uint256();
     return hashBestChain;
 }
-
 bool CCoinsViewDB::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock) {
     CDBBatch batch(db);
     size_t count = 0;
     size_t changed = 0;
+    std::map<uint160, std::pair<std::multiset<uint256>, std::multiset<uint256>>> SPKIndexChanges;
     for (CCoinsMap::iterator it = mapCoins.begin(); it != mapCoins.end();) {
         if (it->second.flags & CCoinsCacheEntry::DIRTY) {
+            // index entries are formatted pair(DB_UTXO_SCRIPT_INDEX, pair(hashSPK, entry slot #)) => pair(next entry slot #, txid); entry slots form a circular linked list, but may not be in any particular order nor even sequentailly numbered
+
+            CCoins old_coins;
+            GetCoins(it->first, old_coins);
+            for (size_t i = std::max(old_coins.vout.size(), it->second.coins.vout.size()); i-- > 0; ) {
+                const bool had_before = i < old_coins.vout.size() && !old_coins.vout[i].IsNull();
+                const bool have_now = i < it->second.coins.vout.size() && !it->second.coins.vout[i].IsNull();
+                if (had_before == have_now) {
+                    continue;
+                }
+                if (had_before) {
+                    const CScript& SPK = old_coins.vout[i].scriptPubKey;
+                    uint160 hashSPK;
+                    CRIPEMD160().Write(SPK.data(), SPK.size()).Finalize(hashSPK.begin());
+                    SPKIndexChanges[hashSPK].first.insert(it->first);
+                } else if (have_now) {
+                    const CScript& SPK = it->second.coins.vout[i].scriptPubKey;
+                    uint160 hashSPK;
+                    CRIPEMD160().Write(SPK.data(), SPK.size()).Finalize(hashSPK.begin());
+                    SPKIndexChanges[hashSPK].second.insert(it->first);
+                }
+            }
+
             if (it->second.coins.IsPruned())
                 batch.Erase(std::make_pair(DB_COINS, it->first));
             else
@@ -60,8 +85,98 @@ bool CCoinsViewDB::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock) {
         CCoinsMap::iterator itOld = it++;
         mapCoins.erase(itOld);
     }
+    for (auto& SPKIndexChange : SPKIndexChanges) {
+        const uint160& hashSPK = SPKIndexChange.first;
+        std::multiset<uint256>& to_del = SPKIndexChange.second.first, to_add = SPKIndexChange.second.second;
+        std::pair<size_t, uint256> instance, prev_instance;
+        std::pair<char, std::pair<uint160, size_t>> key, prev_key, key_j;
+        size_t j = 0;
+        if (to_del.empty()) {
+            static const size_t zero = 0;
+            key = std::make_pair(DB_UTXO_SCRIPT_INDEX, std::make_pair(hashSPK, zero));
+            if (db.Exists(key)) {
+                if (!db.Read(key, instance)) {
+                    return false;
+                }
+            } else {
+                auto to_add_it = to_add.begin();
+                instance = std::make_pair(zero, *to_add_it);
+                batch.Write(key, instance);
+                to_add.erase(to_add_it);
+            }
+        } else {
+            while (true) {
+                key = std::make_pair(DB_UTXO_SCRIPT_INDEX, std::make_pair(hashSPK, j));
+                if (!db.Read(key, instance)) {
+                    return false;
+                }
+    have_next:
+                if (to_del.empty()) {
+                    break;
+                }
+                auto to_del_it = to_del.find(instance.second);
+                if (to_del.find(instance.second) != to_del.end()) {
+                    // found an element to delete
+                    to_del.erase(to_del_it);
+                    if (!to_add.empty()) {
+                        // simply replace it
+                        auto to_add_it = to_add.begin();
+                        instance.second = *to_add_it;
+                        to_add.erase(to_add_it);
+                        batch.Write(key, instance);
+                        goto have_next;
+                    } else if (j == 0) {
+                        // Move next entry to slot 0
+                        const auto next_key = std::make_pair(DB_UTXO_SCRIPT_INDEX, std::make_pair(hashSPK, instance.first));
+                        if (!db.Read(next_key, instance)) {
+                            return false;
+                        }
+                        batch.Erase(next_key);
+                        batch.Write(key, instance);
+                        goto have_next;
+                    } else {
+                        // Delete this slot, and point the previous slot's "next" to the subsequent slot
+                        batch.Erase(key);
+                        instance.second = prev_instance.second;
+                        key = prev_key;
+                        batch.Write(key, instance);
+                    }
+                    if (to_del.empty()) {
+                        break;
+                    }
+                }
+                prev_key = key;
+                prev_instance = instance;
+                j = instance.first;
+                assert(j);
+            }
+        }
+        if (!to_add.empty()) {
+            size_t j = 0, list_continues = instance.first;
+            while (!to_add.empty()) {
+                while (true) {
+                    ++j;
+                    key_j = std::make_pair(DB_UTXO_SCRIPT_INDEX, std::make_pair(hashSPK, j));
+                    if (!db.Exists(key_j)) {
+                        break;
+                    }
+                }
+                instance.first = j;
+                batch.Write(key, instance);
+                auto to_add_it = to_add.begin();
+
+                key = key_j;
+                instance.second = *to_add_it;
+            }
+            instance.first = list_continues;
+            batch.Write(key, instance);
+        }
+    }
     if (!hashBlock.IsNull())
+    {
         batch.Write(DB_BEST_BLOCK, hashBlock);
+        batch.Write(DB_BEST_BLOCK_UTXO_SCRIPT_INDEX, hashBlock);
+    }
 
     LogPrint(BCLog::COINDB, "Committing %u changed transactions (out of %u) to coin database...\n", (unsigned int)changed, (unsigned int)count);
     return db.WriteBatch(batch);
