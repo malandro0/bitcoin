@@ -503,6 +503,9 @@ bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams,
 /** Check whether witness commitments are required for block. */
 bool IsWitnessEnabled(const CBlockIndex* pindexPrev, const Consensus::Params& params);
 
+/** Check if Segregated Witness is Locked In */
+bool IsWitnessLockedIn(const CBlockIndex* pindexPrev, const Consensus::Params& params);
+
 /** Check whether witness has been activated for 90 days worth of blocks. */
 bool IsWitnessSeasoned(const CBlockIndex* pindexPrev, const Consensus::Params& params);
 
