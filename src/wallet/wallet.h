@@ -67,6 +67,7 @@ static const bool DEFAULT_WALLETBROADCAST = true;
 static const bool DEFAULT_DISABLE_WALLET = false;
 //! if set, all keys will be derived by using BIP32
 static const bool DEFAULT_USE_HD_WALLET = true;
+static const bool DEFAULT_DISABLE_HOT_WALLET = false;
 
 extern const char * DEFAULT_WALLET_DAT;
 
@@ -101,6 +102,10 @@ enum WalletFeature
     FEATURE_LATEST = FEATURE_COMPRPUBKEY // HD is optional, use FEATURE_COMPRPUBKEY as latest version
 };
 
+enum WalletFlags : uint64_t {
+    // will enforce the rule that the wallet can't contain any private keys (only watch-only/pubkeys)
+    WALLET_FLAG_DISABLE_HOT_KEYS = (1 << 0),
+};
 
 /** A key pool entry */
 class CKeyPool

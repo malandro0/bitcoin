@@ -150,6 +150,10 @@ UniValue getnewaddress(const JSONRPCRequest& request)
             + HelpExampleRpc("getnewaddress", "")
         );
 
+    if (pwallet->IsWalletFlagSet(WALLET_FLAG_DISABLE_HOT_KEYS)) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Error: Hot keys are disabled (-disablehot)");
+    }
+
     LOCK2(cs_main, pwallet->cs_wallet);
 
     // Parse the account first so we don't generate a key if there's an error
@@ -236,6 +240,10 @@ UniValue getrawchangeaddress(const JSONRPCRequest& request)
             + HelpExampleCli("getrawchangeaddress", "")
             + HelpExampleRpc("getrawchangeaddress", "")
        );
+
+    if (pwallet->IsWalletFlagSet(WALLET_FLAG_DISABLE_HOT_KEYS)) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Error: Hot keys are disabled (-disablehot)");
+    }
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
@@ -2143,6 +2151,10 @@ UniValue keypoolrefill(const JSONRPCRequest& request)
             + HelpExampleCli("keypoolrefill", "")
             + HelpExampleRpc("keypoolrefill", "")
         );
+
+    if (pwallet->IsWalletFlagSet(WALLET_FLAG_DISABLE_HOT_KEYS)) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Error: Hot keys are disabled (-disablehot)");
+    }
 
     LOCK2(cs_main, pwallet->cs_wallet);
 

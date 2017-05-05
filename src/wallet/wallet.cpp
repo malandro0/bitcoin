@@ -144,6 +144,7 @@ const CWalletTx* CWallet::GetWalletTx(const uint256& hash) const
 
 CPubKey CWallet::GenerateNewKey(CWalletDB &walletdb, bool internal)
 {
+    assert(!IsWalletFlagSet(WALLET_FLAG_DISABLE_HOT_KEYS));
     AssertLockHeld(cs_wallet); // mapKeyMetadata
     bool fCompressed = CanSupportFeature(FEATURE_COMPRPUBKEY); // default to compressed public keys if we want 0.6.0 wallets
 
@@ -1390,6 +1391,7 @@ CAmount CWallet::GetChange(const CTransaction& tx) const
 
 CPubKey CWallet::GenerateNewHDMasterKey()
 {
+    assert(!IsWalletFlagSet(WALLET_FLAG_DISABLE_HOT_KEYS));
     CKey key;
     key.MakeNewKey(true);
 
@@ -2698,6 +2700,10 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CWalletT
                 //  post-backup change.
 
                 // Reserve a new key pair from key pool
+                if (IsWalletFlagSet(WALLET_FLAG_DISABLE_HOT_KEYS)) {
+                    strFailReason = _("Can't generate a change-address key. Hot keys are disabled for this wallet (-disablehot).");
+                    return false;
+                }
                 CPubKey vchPubKey;
                 bool ret;
                 ret = reservekey.GetReservedKey(vchPubKey, true);
@@ -3057,7 +3063,7 @@ DBErrors CWallet::LoadWallet(bool& fFirstRunRet)
     }
 
     // This wallet is in its first run if all of these are empty
-    fFirstRunRet = mapKeys.empty() && mapCryptedKeys.empty() && mapWatchKeys.empty() && setWatchOnly.empty() && mapScripts.empty();
+    fFirstRunRet = mapKeys.empty() && mapCryptedKeys.empty() && mapWatchKeys.empty() && setWatchOnly.empty() && mapScripts.empty() && !IsWalletFlagSet(WALLET_FLAG_DISABLE_HOT_KEYS);
 
     if (nLoadWalletRet != DB_LOAD_OK)
         return nLoadWalletRet;
@@ -3179,6 +3185,9 @@ const std::string& CWallet::GetAccountName(const CScript& scriptPubKey) const
  */
 bool CWallet::NewKeyPool()
 {
+    if (IsWalletFlagSet(WALLET_FLAG_DISABLE_HOT_KEYS)) {
+        return false;
+    }
     {
         LOCK(cs_wallet);
         CWalletDB walletdb(*dbw);
@@ -3230,6 +3239,9 @@ void CWallet::LoadKeyPool(int64_t nIndex, const CKeyPool &keypool)
 
 bool CWallet::TopUpKeyPool(unsigned int kpSize)
 {
+    if (IsWalletFlagSet(WALLET_FLAG_DISABLE_HOT_KEYS)) {
+        return false;
+    }
     {
         LOCK(cs_wallet);
 
@@ -3346,6 +3358,10 @@ void CWallet::ReturnKey(int64_t nIndex, bool fInternal, const CPubKey& pubkey)
 
 bool CWallet::GetKeyFromPool(CPubKey& result, bool internal)
 {
+    if (IsWalletFlagSet(WALLET_FLAG_DISABLE_HOT_KEYS)) {
+        return false;
+    }
+
     CKeyPool keypool;
     {
         LOCK(cs_wallet);
@@ -3897,13 +3913,33 @@ CWallet* CWallet::CreateWalletFromFile(const std::string walletFile)
                 throw std::runtime_error(std::string(__func__) + ": Storing master key failed");
         }
 
-        // Top up the keypool
-        if (!walletInstance->TopUpKeyPool()) {
-            InitError(_("Unable to generate initial keys") += "\n");
-            return nullptr;
+        if (gArgs.GetBoolArg("-disablehot", DEFAULT_DISABLE_HOT_WALLET)) {
+            walletInstance->AddWalletFlag(WALLET_FLAG_DISABLE_HOT_KEYS);
+        } else {
+            // Top up the keypool
+            if (!walletInstance->TopUpKeyPool()) {
+                InitError(_("Unable to generate initial keys") += "\n");
+                return nullptr;
+            }
         }
 
         walletInstance->SetBestChain(chainActive.GetLocator());
+    }
+    else if (gArgs.IsArgSet("-disablehot")) {
+        bool disableHot = gArgs.GetBoolArg("-disablehot", DEFAULT_DISABLE_HOT_WALLET);
+        bool hotKeys = walletInstance->IsWalletFlagSet(WALLET_FLAG_DISABLE_HOT_KEYS);
+        if (disableHot != hotKeys) {
+            InitError(strprintf(_("Error loading %s: You can't enable or disable hot keys on an already-existing wallet"), walletFile));
+            return NULL;
+        }
+    }
+    else if (walletInstance->IsWalletFlagSet(WALLET_FLAG_DISABLE_HOT_KEYS)) {
+        LOCK(walletInstance->cs_wallet);
+        /* make sure we don't have hot keys */
+        if (walletInstance->GetKeyPoolSize()) {
+            InitError(strprintf(_("Error loading %s: Keys found in a key-less wallet"), walletFile));
+            return NULL;
+        }
     }
     else if (gArgs.IsArgSet("-usehd")) {
         bool useHD = gArgs.GetBoolArg("-usehd", DEFAULT_USE_HD_WALLET);
