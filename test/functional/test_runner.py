@@ -125,6 +125,7 @@ BASE_SCRIPTS= [
     'minchainwork.py',
     'p2p-fingerprint.py',
     'uacomment.py',
+    'disablehot.py',
 ]
 
 EXTENDED_SCRIPTS = [
