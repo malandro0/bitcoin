@@ -1735,6 +1735,8 @@ static int64_t nTimeIndex = 0;
 static int64_t nTimeCallbacks = 0;
 static int64_t nTimeTotal = 0;
 
+static bool CheckMandatorySegwit(const CBlockIndex*, const Consensus::Params&);
+
 bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pindex,
                   CCoinsViewCache& view, const CChainParams& chainparams, bool fJustCheck)
 {
@@ -1854,6 +1856,14 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     if (GetBoolArg("-bip148", DEFAULT_BIP148)) {
         // BIP148 mandatory segwit signalling.
         if (!CheckBIP148(pindex, chainparams.GetConsensus())) {
+            return state.DoS(0, error("ConnectBlock(): relayed block must signal for segwit, please upgrade"), REJECT_INVALID, "bad-no-segwit");
+        }
+    }
+
+    // SEGSIGNAL mandatory segwit signalling.
+    if ( VersionBitsState(pindex->pprev, chainparams.GetConsensus(), Consensus::DEPLOYMENT_SEGSIGNAL, versionbitscache) == THRESHOLD_ACTIVE )
+    {
+        if (!CheckMandatorySegwit(pindex, chainparams.GetConsensus())) {
             return state.DoS(0, error("ConnectBlock(): relayed block must signal for segwit, please upgrade"), REJECT_INVALID, "bad-no-segwit");
         }
     }
@@ -2925,6 +2935,7 @@ bool IsWitnessEnabled(const CBlockIndex* pindexPrev, const Consensus::Params& pa
     return (VersionBitsState(pindexPrev, params, Consensus::DEPLOYMENT_SEGWIT, versionbitscache) == THRESHOLD_ACTIVE);
 }
 
+// Check if Segregated Witness is Locked In
 bool IsWitnessLockedIn(const CBlockIndex* pindexPrev, const Consensus::Params& params)
 {
     LOCK(cs_main);
