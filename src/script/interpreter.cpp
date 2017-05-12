@@ -456,8 +456,54 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                     break;
                 }
 
+                case OP_CHECKBLOCKVERSION:
+                {
+                    if (!(flags & SCRIPT_VERIFY_CHECKBLOCKVERSION)) {
+                        // not enabled; treat as a NOP6
+                        if (flags & SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_NOPS) {
+                            return set_error(serror, SCRIPT_ERR_DISCOURAGE_UPGRADABLE_NOPS);
+                        }
+                        break;
+                    }
+
+                    // Check only the first two stack items initially, to allow for future upgrades.
+                    if (stack.size() < 2) {
+                        return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
+                    }
+
+                    int32_t nVersionMask = CScriptNum(stacktop(-1), true).getint();
+                    int32_t nBitValues = CScriptNum(stacktop(-2), true).getint();
+                    if (nVersionMask < 0 || nBitValues < 0) {
+                        // undefined; treat as a NOP6
+                        if (flags & SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_NOPS) {
+                            return set_error(serror, SCRIPT_ERR_DISCOURAGE_UPGRADABLE_NOPS);
+                        }
+                        break;
+                    }
+
+                    if (stack.size() < 3) {
+                        return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
+                    }
+
+                    // nLockTime is a 32-bit unsigned integer field.
+                    // See the comment in CHECKLOCKTIMEVERIFY regarding 5-byte numeric operands.
+                    // If we reach this point, the lock time must be valid even if not satisfied.
+                    const CScriptNum nLockTime(stacktop(-3), true, 5);
+                    if (nLockTime < 0) {
+                        return set_error(serror, SCRIPT_ERR_NEGATIVE_LOCKTIME);
+                    }
+
+                    // CheckLockTime only checks the transaction's locktime, but we need to this become valid without the tx being modified.
+                    if (!(checker.CheckBlockTime(nLockTime) || checker.CheckBlockVersion(nVersionMask, nBitValues))) {
+                        // The transaction is simply non-final because the locktime will eventually expire.
+                        return set_error(serror, SCRIPT_ERR_NOT_FINAL);
+                    }
+
+                    break;
+                }
+
                 case OP_NOP1: case OP_NOP4:
-                case OP_NOP6: case OP_NOP7: case OP_NOP8: case OP_NOP9: case OP_NOP10:
+                case OP_NOP7: case OP_NOP8: case OP_NOP9: case OP_NOP10:
                 {
                     if (flags & SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_NOPS)
                         return set_error(serror, SCRIPT_ERR_DISCOURAGE_UPGRADABLE_NOPS);
@@ -1403,6 +1449,46 @@ bool TransactionSignatureChecker::CheckBlockHash(const int32_t nHeight, const st
     std::vector<unsigned char> vchBlockHash(pblockindex->GetBlockHash().begin(), pblockindex->GetBlockHash().end());
     vchBlockHash.erase(vchBlockHash.begin(), vchBlockHash.end() - vchCompareTo.size());
     return (vchCompareTo == vchBlockHash);
+}
+
+bool TransactionSignatureChecker::CheckBlockTime(const CScriptNum& nLockTime) const
+{
+    // There are two kinds of nLockTime: lock-by-blockheight
+    // and lock-by-blocktime, distinguished by whether
+    // nLockTime < LOCKTIME_THRESHOLD.
+    //
+    // We want to compare apples to apples.
+    if (nLockTime < LOCKTIME_THRESHOLD) {
+        // By height
+        const int64_t nThisBlocksHeight = ctx.chain->Height() + 1;
+        return (nLockTime < nThisBlocksHeight);
+    } else {
+        // By time
+        return (nLockTime < ctx.chain->Tip()->GetMedianTimePast());
+    }
+}
+
+bool TransactionSignatureChecker::CheckBlockVersion(int32_t nVersionMask, int32_t nBitValues) const
+{
+    int32_t nBlockVersion = ctx.nBlockVersion;
+
+    // A zero mask means the version must match exactly
+    if ((!nVersionMask) && nBitValues != nBlockVersion) {
+        return false;
+    }
+
+    while (nVersionMask) {
+        if (nVersionMask & 1) {
+            if ((nBlockVersion & 1) != (nBitValues & 1)) {
+                return false;
+            }
+            nBitValues >>= 1;
+        }
+        nVersionMask >>= 1;
+        nBlockVersion >>= 1;
+    }
+
+    return true;
 }
 
 static bool VerifyWitnessProgram(const CScriptWitness& witness, int witversion, const std::vector<unsigned char>& program, unsigned int flags, const BaseSignatureChecker& checker, ScriptError* serror)

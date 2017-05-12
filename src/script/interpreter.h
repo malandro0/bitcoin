@@ -110,6 +110,9 @@ enum
 
     // Enforce CHECKBLOCKATHEIGHT opcode
     SCRIPT_VERIFY_CHECKBLOCKATHEIGHT = (1U << 16),
+
+    // Enforce CHECKBLOCKVERSION opcode
+    SCRIPT_VERIFY_CHECKBLOCKVERSION = (1U << 17),
 };
 
 static const unsigned int CONTEXTUAL_SCRIPT_VERIFY_FLAGS = SCRIPT_VERIFY_CHECKBLOCKATHEIGHT;
@@ -165,6 +168,15 @@ public:
          return false;
     }
 
+    virtual bool CheckBlockTime(const CScriptNum& nLockTime) const
+    {
+         return false;
+    }
+
+    virtual bool CheckBlockVersion(int32_t nVersionMask, int32_t nBitValues) const {
+        return false;
+    }
+
     virtual ~BaseSignatureChecker() {}
 };
 
@@ -187,6 +199,8 @@ public:
     bool CheckLockTime(const CScriptNum& nLockTime) const;
     bool CheckSequence(const CScriptNum& nSequence) const;
     bool CheckBlockHash(const int32_t nHeight, const std::vector<unsigned char>& nBlockHash) const;
+    bool CheckBlockTime(const CScriptNum& nLockTime) const;
+    bool CheckBlockVersion(int32_t nVersionMask, int32_t nBitValues) const;
 };
 
 class MutableTransactionSignatureChecker : public TransactionSignatureChecker

@@ -133,7 +133,7 @@ const char* GetOpName(opcodetype opcode)
     case OP_CHECKSEQUENCEVERIFY    : return "OP_CHECKSEQUENCEVERIFY";
     case OP_NOP4                   : return "OP_NOP4";
     case OP_CHECKBLOCKATHEIGHT     : return "OP_CHECKBLOCKATHEIGHT";
-    case OP_NOP6                   : return "OP_NOP6";
+    case OP_CHECKBLOCKVERSION      : return "OP_CHECKBLOCKVERSION";
     case OP_NOP7                   : return "OP_NOP7";
     case OP_NOP8                   : return "OP_NOP8";
     case OP_NOP9                   : return "OP_NOP9";
