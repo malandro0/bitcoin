@@ -132,9 +132,10 @@ enum SigVersion
 class CScriptContext {
 public:
     const CChain *chain;
+    int32_t nBlockVersion;
 
     CScriptContext() : chain(nullptr) { }
-    CScriptContext(const CChain& chainIn) : chain(&chainIn) { }
+    CScriptContext(const CChain& chainIn, int32_t nBlockVersionIn) : chain(&chainIn), nBlockVersion(nBlockVersionIn) { }
 };
 
 extern const CScriptContext NullScriptContext;

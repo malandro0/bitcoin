@@ -893,7 +893,9 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState& state, const C
         // Check against previous transactions
         // This is done last to help prevent CPU exhaustion denial-of-service attacks.
         PrecomputedTransactionData txdata(tx);
-        CScriptContext scriptcontext(chainActive);
+        // We only accept version-lock transactions that we would mine ourselves.
+        const int32_t nPreferredBlockVersion = ComputeBlockVersion(chainActive.Tip(), Params().GetConsensus());
+        CScriptContext scriptcontext(chainActive, nPreferredBlockVersion);
         if (!CheckInputs(tx, state, view, true, scriptcontext, scriptVerifyFlags, true, txdata)) {
             // SCRIPT_VERIFY_CLEANSTACK requires SCRIPT_VERIFY_WITNESS, so we
             // need to turn both off, and compare against just turning off CLEANSTACK
@@ -1870,7 +1872,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
 
             std::vector<CScriptCheck> vChecks;
             bool fCacheResults = fJustCheck; /* Don't cache results if we're actually connecting blocks (still consult the cache, though) */
-            CScriptContext scriptcontext(chain);
+            CScriptContext scriptcontext(chain, block.nVersion);
             if (!CheckInputs(tx, state, view, fScriptChecks, scriptcontext, flags, fCacheResults, txdata[i], nScriptCheckThreads ? &vChecks : NULL)) {
                 return error("ConnectBlock(): CheckInputs on %s failed with %s",
                     tx.GetHash().ToString(), FormatStateMessage(state));
