@@ -14,6 +14,8 @@
 #include "script/script.h"
 #include "uint256.h"
 
+const CScriptContext NullScriptContext;
+
 typedef std::vector<unsigned char> valtype;
 
 namespace {
@@ -1383,21 +1385,21 @@ bool TransactionSignatureChecker::CheckSequence(const CScriptNum& nSequence) con
 
 bool TransactionSignatureChecker::CheckBlockHash(const int32_t nHeight, const std::vector<unsigned char>& vchCompareTo) const
 {
-    if (!chain) {
+    if (!ctx.chain) {
         return false;
     }
 
     // If the chain doesn't reach the desired height yet, the transaction is non-final
-    if (nHeight > chain->Height()) {
+    if (nHeight > ctx.chain->Height()) {
         return false;
     }
 
     // Sufficiently old blocks are always valid
-    if (nHeight <= chain->Height() - 52596) {
+    if (nHeight <= ctx.chain->Height() - 52596) {
         return true;
     }
 
-    CBlockIndex* pblockindex = (*chain)[nHeight];
+    CBlockIndex* pblockindex = (*ctx.chain)[nHeight];
     std::vector<unsigned char> vchBlockHash(pblockindex->GetBlockHash().begin(), pblockindex->GetBlockHash().end());
     vchBlockHash.erase(vchBlockHash.begin(), vchBlockHash.end() - vchCompareTo.size());
     return (vchCompareTo == vchBlockHash);
