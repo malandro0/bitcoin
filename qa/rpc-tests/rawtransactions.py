@@ -71,10 +71,10 @@ class RawTransactionsTest(BitcoinTestFramework):
         # make a tx by sending then generate 2 blocks; block1 has the tx in it,
         # presumably
         tx = self.nodes[2].sendtoaddress(self.nodes[1].getnewaddress(), 1)
-        [ block1, block2 ] = self.nodes[2].generate(2)
+        block1, block2 = self.nodes[2].generate(2)
         self.sync_all()
         # We should be able to get the raw transaction by providing the correct block
-        assert self.nodes[0].getrawtransaction(tx, True, block1)
+        assert_equal(self.nodes[0].getrawtransaction(tx, True, block1)['txid'], tx)
         # We should not get the tx if we provide an unrelated block
         assert_raises_jsonrpc(-5, "No such", self.nodes[0].getrawtransaction, tx, True, block2)
 
