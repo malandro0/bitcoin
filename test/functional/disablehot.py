@@ -31,6 +31,8 @@ class DisableHotKeysTest(BitcoinTestFramework):
 
         assert_raises_rpc_error(-4,"Error: Hot keys are disabled (-disablehot)", self.nodes[1].getnewaddress)
         assert_raises_rpc_error(-4,"Error: Hot keys are disabled (-disablehot)", self.nodes[1].getrawchangeaddress)
+        assert_raises_rpc_error(-4,"Error: Hot keys are disabled (-disablehot)", self.nodes[1].importprivkey, "92e6XLo5jVAVwrQKPNTs93oQco8f8sDNBcpv73Dsrs397fQtFQn")
+        assert_raises_rpc_error(-4,"Error: Hot keys are disabled (-disablehot)", self.nodes[1].importwallet, "dummy")
 
         self.nodes[1].importpubkey(n0pubkR) #TODO switch to importmulti
         self.nodes[1].importpubkey(n0pubkC)

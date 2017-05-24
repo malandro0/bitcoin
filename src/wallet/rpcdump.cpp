@@ -101,6 +101,10 @@ UniValue importprivkey(const JSONRPCRequest& request)
         );
 
 
+    if (pwallet->IsWalletFlagSet(WALLET_FLAG_DISABLE_HOT_KEYS)) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Error: Hot keys are disabled (-disablehot)");
+    }
+
     LOCK2(cs_main, pwallet->cs_wallet);
 
     EnsureWalletIsUnlocked(pwallet);
@@ -470,6 +474,10 @@ UniValue importwallet(const JSONRPCRequest& request)
 
     if (fPruneMode)
         throw JSONRPCError(RPC_WALLET_ERROR, "Importing wallets is disabled in pruned mode");
+
+    if (pwallet->IsWalletFlagSet(WALLET_FLAG_DISABLE_HOT_KEYS)) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Error: Hot keys are disabled (-disablehot)");
+    }
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
