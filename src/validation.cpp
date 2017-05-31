@@ -1866,17 +1866,8 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
 
     if (GetBoolArg("-bip148", DEFAULT_BIP148)) {
         // BIP148 mandatory segwit signalling.
-        int64_t nMedianTimePast = pindex->GetMedianTimePast();
-        if ( (nMedianTimePast >= 1501545600) &&  // Tue 01 Aug 2017 00:00:00 UTC
-             (nMedianTimePast <= 1510704000) &&  // Wed 15 Nov 2017 00:00:00 UTC
-             (!IsWitnessLockedIn(pindex->pprev, chainparams.GetConsensus()) &&  // Segwit is not locked in
-              !IsWitnessEnabled(pindex->pprev, chainparams.GetConsensus())) )   // and is not active.
-        {
-            bool fVersionBits = (pindex->nVersion & VERSIONBITS_TOP_MASK) == VERSIONBITS_TOP_BITS;
-            bool fSegbit = (pindex->nVersion & VersionBitsMask(chainparams.GetConsensus(), Consensus::DEPLOYMENT_SEGWIT)) != 0;
-            if (!(fVersionBits && fSegbit)) {
-                return state.DoS(0, error("ConnectBlock(): relayed block must signal for segwit, please upgrade"), REJECT_INVALID, "bad-no-segwit");
-            }
+        if (!CheckBIP148(pindex, chainparams.GetConsensus())) {
+            return state.DoS(0, error("ConnectBlock(): relayed block must signal for segwit, please upgrade"), REJECT_INVALID, "bad-no-segwit");
         }
     }
 
@@ -2963,6 +2954,23 @@ bool IsWitnessSeasoned(const CBlockIndex* pindexPrev, const Consensus::Params& p
     const CBlockIndex* pindexForkBuffer = pindexPrev->GetAncestor(nHeight - params.BIP102HeightDelta);
 
     return (VersionBitsState(pindexForkBuffer, params, Consensus::DEPLOYMENT_SEGWIT, versionbitscache) == THRESHOLD_ACTIVE);
+}
+
+bool CheckBIP148(const CBlockIndex* pindex, const Consensus::Params& params)
+{
+    int64_t nMedianTimePast = pindex->GetMedianTimePast();
+    if ( (nMedianTimePast >= 1501545600) &&  // Tue 01 Aug 2017 00:00:00 UTC
+         (nMedianTimePast <= 1510704000) &&  // Wed 15 Nov 2017 00:00:00 UTC
+         (!IsWitnessLockedIn(pindex->pprev, params) &&  // Segwit is not locked in
+          !IsWitnessEnabled(pindex->pprev, params)) )   // and is not active.
+    {
+        bool fVersionBits = (pindex->nVersion & VERSIONBITS_TOP_MASK) == VERSIONBITS_TOP_BITS;
+        bool fSegbit = (pindex->nVersion & VersionBitsMask(params, Consensus::DEPLOYMENT_SEGWIT)) != 0;
+        if (!(fVersionBits && fSegbit)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 // Compute at which vout of the block's coinbase transaction the witness
