@@ -131,7 +131,8 @@ UniValue getrawtransaction(const JSONRPCRequest& request)
 
             "\nNOTE: By default this function only works for mempool transactions. If the -txindex option is\n"
             "enabled, it also works for blockchain transactions. If the block hash is known, it can be provided\n"
-            "for nodes without -txindex.\n"
+            "for nodes without -txindex, in which case the transaction will only be found if it is in that\n"
+            "block.\n"
             "DEPRECATED: for now, it also works for transactions with unspent outputs.\n"
 
             "\nReturn the raw transaction data.\n"
@@ -148,7 +149,7 @@ UniValue getrawtransaction(const JSONRPCRequest& request)
 
             "\nResult (if verbose is set to true):\n"
             "{\n"
-            "  \"inMainChain\": b,       (bool) Whether transaction is in the main chain or not. Only visible when specifying block hash\n"
+            "  \"inMainChain\": b,       (bool) Whether specified block is in the main chain or not\n"
             "  \"hex\" : \"data\",       (string) The serialized, hex-encoded data for 'txid'\n"
             "  \"txid\" : \"id\",        (string) The transaction id (same as provided)\n"
             "  \"hash\" : \"id\",        (string) The transaction hash (differs from txid for witness transactions)\n"
@@ -221,7 +222,7 @@ UniValue getrawtransaction(const JSONRPCRequest& request)
         if (!blockHash.IsNull()) {
             BlockMap::iterator it = mapBlockIndex.find(blockHash);
             if (it == mapBlockIndex.end()) {
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block hash not found in chain");
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block hash not found");
             }
             blockIndex = it->second;
             inMainChain = (chainActive[blockIndex->nHeight] == blockIndex);
