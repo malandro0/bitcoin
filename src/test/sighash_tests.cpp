@@ -157,7 +157,7 @@ BOOST_AUTO_TEST_CASE(sighash_test)
         std::cout << HexStr(scriptCode) << "\", ";
         std::cout << nIn << ", ";
         std::cout << nHashType << ", \"";
-        std::cout << sho.GetHex() << "\"]";
+        std::cout << sh.GetHex() << "\"]";
         if (i+1 != nRandomTests) {
           std::cout << ",";
         }

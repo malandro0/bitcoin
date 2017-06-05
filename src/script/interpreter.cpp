@@ -183,11 +183,19 @@ bool static IsLowDERSignature(const valtype &vchSig, ScriptError* serror) {
     return true;
 }
 
+static unsigned char GetHashType(const valtype &vchSig) {
+    if (vchSig.size() == 0) {
+        return 0;
+    }
+
+    return vchSig[vchSig.size() - 1];
+}
+
 bool static IsDefinedHashtypeSignature(const valtype &vchSig) {
     if (vchSig.size() == 0) {
         return false;
     }
-    unsigned char nHashType = vchSig[vchSig.size() - 1] & (~(SIGHASH_ANYONECANPAY));
+    unsigned char nHashType = GetHashType(vchSig) & ~(SIGHASH_ANYONECANPAY | SIGHASH_FORKID);
     if (nHashType < SIGHASH_ALL || nHashType > SIGHASH_SINGLE)
         return false;
 
@@ -887,19 +895,26 @@ bool EvalScript(vector<vector<unsigned char> >& stack, const CScript& script, un
                     valtype& vchSig    = stacktop(-2);
                     valtype& vchPubKey = stacktop(-1);
 
-                    // Subset of script starting at the most recent codeseparator
-                    CScript scriptCode(pbegincodehash, pend);
-
-                    // Drop the signature in pre-segwit scripts but not segwit scripts
-                    // TODO: Do not do this when using SIGHASH_FORKID
-                    if (sigversion == SIGVERSION_BASE) {
-                        scriptCode.FindAndDelete(CScript(vchSig));
-                    }
-
                     if (!CheckSignatureEncoding(vchSig, flags, serror) || !CheckPubKeyEncoding(vchPubKey, flags, sigversion, serror)) {
                         //serror is set
                         return false;
                     }
+                    // Subset of script starting at the most recent codeseparator
+                    CScript scriptCode(pbegincodehash, pend);
+
+                    // Drop the signature in pre-segwit scripts but not segwit scripts
+                    // or when SIGHASH_FORKID is used.
+                    unsigned char nHashType = GetHashType(vchSig);
+                    if (sigversion == SIGVERSION_BASE) {
+                        if (nHashType & SIGHASH_FORKID) {
+                            if (!(flags & SCRIPT_ENABLE_SIGHASH_FORKID)) {
+                                return set_error(serror, SCRIPT_ERR_ILLEGAL_FORKID);
+                            }
+                        } else {
+                            scriptCode.FindAndDelete(CScript(vchSig));
+                        }
+                    }
+
                     bool fSuccess = checker.CheckSig(vchSig, vchPubKey, scriptCode, sigversion);
 
                     if (!fSuccess && (flags & SCRIPT_VERIFY_NULLFAIL) && vchSig.size())
@@ -956,9 +971,17 @@ bool EvalScript(vector<vector<unsigned char> >& stack, const CScript& script, un
                     for (int k = 0; k < nSigsCount; k++)
                     {
                         valtype& vchSig = stacktop(-isig-k);
-                        // TODO: Do not do this when using SIGHASH_FORKID
                         if (sigversion == SIGVERSION_BASE) {
-                            scriptCode.FindAndDelete(CScript(vchSig));
+                            // Drop the signature in scripts when SIGHASH_FORKID
+                            // is not used.
+                            unsigned char nHashType = GetHashType(vchSig);
+                            if (nHashType & SIGHASH_FORKID) {
+                                if (!(flags & SCRIPT_ENABLE_SIGHASH_FORKID)) {
+                                    return set_error(serror, SCRIPT_ERR_ILLEGAL_FORKID);
+                                }
+                            } else {
+                                scriptCode.FindAndDelete(CScript(vchSig));
+                            }
                         }
                     }
 

@@ -98,6 +98,7 @@ static ScriptErrorDesc script_errors[]={
     {SCRIPT_ERR_WITNESS_MALLEATED_P2SH, "WITNESS_MALLEATED_P2SH"},
     {SCRIPT_ERR_WITNESS_UNEXPECTED, "WITNESS_UNEXPECTED"},
     {SCRIPT_ERR_WITNESS_PUBKEYTYPE, "WITNESS_PUBKEYTYPE"},
+    {SCRIPT_ERR_ILLEGAL_FORKID, "ILLEGAL_FORKID"},
 };
 
 const char *FormatScriptError(ScriptError_t err)
@@ -320,6 +321,8 @@ public:
         spendTx = BuildSpendingTransaction(CScript(), CScriptWitness(), *creditTx);
     }
 
+    TestBuilder(const CScript& script_, const std::string& comment_, int flags_, bool P2SH, CAmount nValue_) : TestBuilder(script_, comment_, flags_, P2SH, WITNESS_NONE, 0, nValue_) {}
+
     TestBuilder& ScriptError(ScriptError_t err)
     {
         scriptError = err;
@@ -367,6 +370,11 @@ public:
         vchSig.push_back(static_cast<unsigned char>(nHashType));
         DoPush(vchSig);
         return *this;
+    }
+
+    TestBuilder& PushSig(const CKey& key, int nHashType, unsigned int lenR, unsigned int lenS, CAmount amount)
+    {
+        return PushSig(key, nHashType, lenR, lenS, SIGVERSION_BASE, amount);
     }
 
     TestBuilder& PushWitSig(const CKey& key, CAmount amount = -1, int nHashType = SIGHASH_ALL, unsigned int lenR = 32, unsigned int lenS = 32, SigVersion sigversion = SIGVERSION_WITNESS_V0)
@@ -442,6 +450,10 @@ public:
             }
             wit.push_back(ValueFromAmount(nValue));
             array.push_back(wit);
+        } else if (nValue != 0) {
+            UniValue amount(UniValue::VARR);
+            amount.push_back(ValueFromAmount(nValue));
+            array.push_back(amount);
         }
         array.push_back(FormatScript(spendTx.vin[0].scriptSig));
         array.push_back(FormatScript(creditTx->vout[0].scriptPubKey));
@@ -918,6 +930,28 @@ BOOST_AUTO_TEST_CASE(script_build)
     tests.push_back(TestBuilder(CScript() << OP_1 << ToByteVector(keys.pubkey1) << ToByteVector(keys.pubkey0C) << OP_2 << OP_CHECKMULTISIG,
                                 "P2SH(P2WSH) CHECKMULTISIG with second key uncompressed and signing with the second key", SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS_PUBKEYTYPE, true, WITNESS_SH,
                                 0, 1).Push(CScript()).AsWit().PushWitSig(keys.key1).PushWitRedeem().PushRedeem().ScriptError(SCRIPT_ERR_WITNESS_PUBKEYTYPE));
+
+    static const CAmount TEST_AMOUNT = 12345000000000;
+    tests.push_back(
+        TestBuilder(CScript() << ToByteVector(keys.pubkey0) << OP_CHECKSIG,
+                    "P2PK FORKID", SCRIPT_ENABLE_SIGHASH_FORKID, false,
+                    TEST_AMOUNT)
+            .PushSig(keys.key0, SIGHASH_ALL | SIGHASH_FORKID, 32, 32,
+                     TEST_AMOUNT));
+
+    tests.push_back(
+        TestBuilder(CScript() << ToByteVector(keys.pubkey0) << OP_CHECKSIG,
+                    "P2PK INVALID AMOUNT", SCRIPT_ENABLE_SIGHASH_FORKID, false,
+                    TEST_AMOUNT)
+            .PushSig(keys.key0, SIGHASH_ALL | SIGHASH_FORKID, 32, 32,
+                     TEST_AMOUNT + 1)
+            .ScriptError(SCRIPT_ERR_EVAL_FALSE));
+    tests.push_back(
+        TestBuilder(CScript() << ToByteVector(keys.pubkey0) << OP_CHECKSIG,
+                    "P2PK INVALID FORKID", 0, false, TEST_AMOUNT)
+            .PushSig(keys.key0, SIGHASH_ALL | SIGHASH_FORKID, 32, 32,
+                     TEST_AMOUNT)
+            .ScriptError(SCRIPT_ERR_ILLEGAL_FORKID));
 
     std::set<std::string> tests_set;
 

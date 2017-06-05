@@ -54,7 +54,8 @@ static std::map<std::string, unsigned int> mapFlagNames = boost::assign::map_lis
     (std::string("CHECKSEQUENCEVERIFY"), (unsigned int)SCRIPT_VERIFY_CHECKSEQUENCEVERIFY)
     (std::string("WITNESS"), (unsigned int)SCRIPT_VERIFY_WITNESS)
     (std::string("DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM"), (unsigned int)SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM)
-    (std::string("WITNESS_PUBKEYTYPE"), (unsigned int)SCRIPT_VERIFY_WITNESS_PUBKEYTYPE);
+    (std::string("WITNESS_PUBKEYTYPE"), (unsigned int)SCRIPT_VERIFY_WITNESS_PUBKEYTYPE)
+    (std::string("SIGHASH_FORKID"), (unsigned int)SCRIPT_ENABLE_SIGHASH_FORKID);
 
 unsigned int ParseScriptFlags(std::string strFlags)
 {
