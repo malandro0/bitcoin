@@ -5,6 +5,11 @@
 #include "script/script.h"
 #include "test/test_bitcoin.h"
 
+#include "chainparams.h"
+#include "config/bitcoin-config.h"
+#include "consensus/validation.h"
+#include "validation.h"
+
 #include <boost/test/unit_test.hpp>
 
 #include <string>
@@ -52,6 +57,12 @@ BOOST_AUTO_TEST_CASE(test_is_commitment) {
     data.push_back(23);
     s = CScript() << OP_RETURN << data;
     BOOST_CHECK(!s.IsCommitment(data));
+
+    // Check with the actual replay commitment we are going to use.
+    SelectParams(CBaseChainParams::MAIN);
+    const Consensus::Params &params = Params().GetConsensus();
+    s = CScript() << OP_RETURN << params.antiReplayOpReturnCommitment;
+    BOOST_CHECK(s.IsCommitment(params.antiReplayOpReturnCommitment));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
