@@ -66,6 +66,7 @@ struct Params {
 
     /** Hardfork parameters */
     int64_t HardforkTime;
+    int nPowChangeTargetShift;
     HashAlgorithm PowAlgorithmForTime(int64_t nTime) const {
         return HashAlgorithm::SHA256d;
     }
