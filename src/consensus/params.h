@@ -6,6 +6,7 @@
 #ifndef BITCOIN_CONSENSUS_PARAMS_H
 #define BITCOIN_CONSENSUS_PARAMS_H
 
+#include "hash.h"
 #include "uint256.h"
 #include <map>
 #include <string>
@@ -65,6 +66,9 @@ struct Params {
 
     /** Hardfork parameters */
     int64_t HardforkTime;
+    HashAlgorithm PowAlgorithmForTime(int64_t nTime) const {
+        return HashAlgorithm::SHA256d;
+    }
 
     uint256 defaultAssumeValid;
 };
