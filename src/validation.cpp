@@ -2989,6 +2989,10 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& sta
     if (block.GetBlockTime() > nAdjustedTime + 2 * 60 * 60)
         return state.Invalid(false, REJECT_INVALID, "time-too-new", "block timestamp too far in the future");
 
+    if (consensusParams.PowAlgorithmForTime(block.GetBlockTime()) != consensusParams.PowAlgorithmForTime(pindexPrev->GetBlockTime()) && block.GetBlockTime() < pindexPrev->GetBlockTime()) {
+        return state.Invalid(false, REJECT_INVALID, "pow-reversed", "cannot reverse PoW change");
+    }
+
     // Reject outdated version blocks when 95% (75% on testnet) of the network has upgraded:
     // check for version 2, 3 and 4 upgrades
     if((block.nVersion < 2 && nHeight >= consensusParams.BIP34Height) ||
