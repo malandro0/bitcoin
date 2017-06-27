@@ -622,6 +622,10 @@ UniValue getblocktemplate(const JSONRPCRequest& request)
     for (int j = 0; j < (int)Consensus::MAX_VERSION_BITS_DEPLOYMENTS; ++j) {
         Consensus::DeploymentPos pos = Consensus::DeploymentPos(j);
         ThresholdState state = VersionBitsState(pindexPrev, consensusParams, pos, versionbitscache);
+        if (pos == Consensus::DEPLOYMENT_SEGWIT && IsWitnessEnabled(pindexPrev, consensusParams)) {
+            // Segwit was activated via hardfork
+            state = THRESHOLD_ACTIVE;
+        }
         switch (state) {
             case THRESHOLD_DEFINED:
             case THRESHOLD_FAILED:
