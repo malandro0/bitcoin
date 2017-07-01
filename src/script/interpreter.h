@@ -180,7 +180,14 @@ class ScriptExecution {
 public:
     typedef std::vector<unsigned char> StackElementType;
     typedef std::vector<StackElementType> StackType;
+    enum class Context {
+        Sig,
+        PubKey,
+        BIP16,
+        Segwit,
+    };
 
+    Context context;
     const CScript& script;
     StackType& stack;
     unsigned int flags;
@@ -196,7 +203,7 @@ public:
 
     ScriptExecutionDebugger *debugger;
 
-    ScriptExecution(StackType& stack, const CScript&, unsigned int flags, const BaseSignatureChecker&, SigVersion);
+    ScriptExecution(Context, StackType& stack, const CScript&, unsigned int flags, const BaseSignatureChecker&, SigVersion);
 
     bool Eval(ScriptError* error = NULL);
 };
@@ -212,9 +219,9 @@ protected:
     friend bool ScriptExecution::Eval(ScriptError* serror);
 };
 
-inline bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& script, unsigned int flags, const BaseSignatureChecker& checker, SigVersion sigversion, ScriptError* error = nullptr, ScriptExecutionDebugger * const debugger = nullptr)
+inline bool EvalScript(ScriptExecution::Context context, std::vector<std::vector<unsigned char> >& stack, const CScript& script, unsigned int flags, const BaseSignatureChecker& checker, SigVersion sigversion, ScriptError* error = nullptr, ScriptExecutionDebugger * const debugger = nullptr)
 {
-    ScriptExecution executor(stack, script, flags, checker, sigversion);
+    ScriptExecution executor(context, stack, script, flags, checker, sigversion);
     executor.debugger = debugger;
     return executor.Eval(error);
 }
