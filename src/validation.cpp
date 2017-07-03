@@ -2931,12 +2931,9 @@ bool IsWitnessLockedIn(const CBlockIndex* pindexPrev, const Consensus::Params& p
     return (VersionBitsState(pindexPrev, params, Consensus::DEPLOYMENT_SEGWIT, versionbitscache) == THRESHOLD_LOCKED_IN);
 }
 
-bool CheckBIP148(const CBlockIndex* pindex, const Consensus::Params& params)
+static bool CheckMandatorySegwit(const CBlockIndex* pindex, const Consensus::Params& params)
 {
-    int64_t nMedianTimePast = pindex->GetMedianTimePast();
-    if ( (nMedianTimePast >= 1501545600) &&  // Tue 01 Aug 2017 00:00:00 UTC
-         (nMedianTimePast <= 1510704000) &&  // Wed 15 Nov 2017 00:00:00 UTC
-         (!IsWitnessLockedIn(pindex->pprev, params) &&  // Segwit is not locked in
+    if ( (!IsWitnessLockedIn(pindex->pprev, params) &&  // Segwit is not locked in
           !IsWitnessEnabled(pindex->pprev, params)) )   // and is not active.
     {
         bool fVersionBits = (pindex->nVersion & VERSIONBITS_TOP_MASK) == VERSIONBITS_TOP_BITS;
@@ -2944,6 +2941,17 @@ bool CheckBIP148(const CBlockIndex* pindex, const Consensus::Params& params)
         if (!(fVersionBits && fSegbit)) {
             return false;
         }
+    }
+    return true;
+}
+
+bool CheckBIP148(const CBlockIndex* pindex, const Consensus::Params& params)
+{
+    int64_t nMedianTimePast = pindex->GetMedianTimePast();
+    if ( (nMedianTimePast >= 1501545600) &&  // Tue 01 Aug 2017 00:00:00 UTC
+         (nMedianTimePast <= 1510704000) )   // Wed 15 Nov 2017 00:00:00 UTC
+    {
+        return CheckMandatorySegwit(pindex, params);
     }
     return true;
 }
