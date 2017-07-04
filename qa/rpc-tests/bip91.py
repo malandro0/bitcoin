@@ -29,8 +29,8 @@ class BIP91Test(BitcoinTestFramework):
 
     def setup_network(self):
         self.nodes = []
-        self.nodes.append(start_node(0, self.options.tmpdir, ["-debug", "-whitelist=127.0.0.1"]))
-        self.nodes.append(start_node(1, self.options.tmpdir, ["-debug", "-whitelist=127.0.0.1"])) # connect to a dummy node to allow getblocktemplate
+        self.nodes.append(start_node(0, self.options.tmpdir, ["-debug", "-whitelist=127.0.0.1", "-bip91"]))
+        self.nodes.append(start_node(1, self.options.tmpdir, ["-debug", "-whitelist=127.0.0.1", "-bip91"])) # connect to a dummy node to allow getblocktemplate
         connect_nodes(self.nodes[0], 1)
 
     def run_test(self):
