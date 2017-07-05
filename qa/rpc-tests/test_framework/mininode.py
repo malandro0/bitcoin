@@ -73,11 +73,24 @@ def sha256(s):
 def ripemd160(s):
     return hashlib.new('ripemd160', s).digest()
 
+def hash160(s):
+    return ripemd160(sha256(s))
+
 def hash256(s):
     return sha256(sha256(s))
 
-def powhash(s):
-    return hash256(s)
+def upgrade_160_hash_to_256(algo):
+    def algowrapper(s):
+        return algo(s) + (b'\0' * 12)
+    return algowrapper
+
+powalgos = (sha256, hash256, upgrade_160_hash_to_256(ripemd160), upgrade_160_hash_to_256(hash160))
+def powhash(s, nTime):
+    if nTime < 1296688603:
+        algo = hash256
+    else:
+        algo = powalgos[int(nTime / 3600) % len(powalgos)]
+    return algo(s)
 
 def ser_compact_size(l):
     r = b""
@@ -580,7 +593,7 @@ class CBlockHeader(object):
             r += struct.pack("<I", self.nTime)
             r += struct.pack("<I", self.nBits)
             r += struct.pack("<I", self.nNonce)
-            rawhash = powhash(r)
+            rawhash = powhash(r, self.nTime)
             self.sha256 = uint256_from_str(rawhash)
             self.hash = encode(rawhash[::-1], 'hex_codec').decode('ascii')
 
