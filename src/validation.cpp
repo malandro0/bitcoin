@@ -2931,16 +2931,30 @@ bool IsWitnessEnabled(const CBlockIndex* pindexPrev, const Consensus::Params& pa
     return (VersionBitsState(pindexPrev, params, Consensus::DEPLOYMENT_SEGWIT, versionbitscache) == THRESHOLD_ACTIVE);
 }
 
-bool IsWitnessSeasoned(const CBlockIndex* pindexPrev, const Consensus::Params& params)
+bool IsWitnessSeasoned(const CBlockIndex* pindexPrev, const Consensus::Params& params, bool * const fFirstBlock)
 {
     AssertLockHeld(cs_main);
     assert(pindexPrev);
+
+    if (fFirstBlock) {
+        *fFirstBlock = false;
+    }
 
     const int nHeight = pindexPrev->nHeight + 1;
 
     const CBlockIndex* pindexForkBuffer = pindexPrev->GetAncestor(nHeight - params.BIP102HeightDelta);
 
-    return (VersionBitsState(pindexForkBuffer, params, Consensus::DEPLOYMENT_SEGWIT, versionbitscache) == THRESHOLD_ACTIVE);
+    if (VersionBitsState(pindexForkBuffer, params, Consensus::DEPLOYMENT_SEGWIT, versionbitscache) != THRESHOLD_ACTIVE) {
+        return false;
+    }
+
+    if (fFirstBlock) {
+        // Look back one more block, to detect edge
+        assert(pindexForkBuffer);
+        const CBlockIndex* pindexLastSeason = pindexForkBuffer->pprev;
+        *fFirstBlock = (VersionBitsState(pindexLastSeason, params, Consensus::DEPLOYMENT_SEGWIT, versionbitscache) != THRESHOLD_ACTIVE);
+    }
+    return true;
 }
 
 // Compute at which vout of the block's coinbase transaction the witness
@@ -3086,16 +3100,7 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Co
             fHaveWitness = true;
         }
 
-        // Look back to test SegWit activation period
-        const CBlockIndex* pindexForkBuffer = pindexPrev ? pindexPrev->GetAncestor(nHeight - consensusParams.BIP102HeightDelta) : NULL;
-        fSegwitSeasoned = (VersionBitsState(pindexForkBuffer, consensusParams, Consensus::DEPLOYMENT_SEGWIT, versionbitscache) == THRESHOLD_ACTIVE);
-
-        // Look back one more block, to detect edge
-        if (fSegwitSeasoned) {
-            assert(pindexForkBuffer);
-            const CBlockIndex* pindexLastSeason = pindexForkBuffer->pprev;
-            fBIP102FirstBlock = (VersionBitsState(pindexLastSeason, consensusParams, Consensus::DEPLOYMENT_SEGWIT, versionbitscache) != THRESHOLD_ACTIVE);
-        }
+        fSegwitSeasoned = IsWitnessSeasoned(pindexPrev, consensusParams, &fBIP102FirstBlock);
     }
 
     // Max block base size limit
