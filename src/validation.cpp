@@ -2948,6 +2948,13 @@ bool IsSegwit2xSeasoned(const CBlockIndex* pindexPrev, const Consensus::Params& 
         return false;
     }
 
+    const int nSegwitActivationHeight = VersionBitsStateSinceHeight(pindexForkBuffer, params, Consensus::DEPLOYMENT_SEGWIT, versionbitscache);
+    const int nSegwitPeriod = VersionBitsPeriod(params, Consensus::DEPLOYMENT_SEGWIT);
+    const CBlockIndex *pindexLookback = pindexPrev->GetAncestor(nSegwitActivationHeight - nSegwitPeriod);
+    if (VersionBitsState(pindexLookback, params, Consensus::DEPLOYMENT_SEGWIT2X, versionbitscache) != THRESHOLD_ACTIVE) {
+        return false;
+    }
+
     if (fFirstBlock) {
         // Look back one more block, to detect edge
         assert(pindexForkBuffer);
