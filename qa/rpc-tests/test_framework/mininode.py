@@ -76,6 +76,9 @@ def ripemd160(s):
 def hash256(s):
     return sha256(sha256(s))
 
+def powhash(s):
+    return hash256(s)
+
 def ser_compact_size(l):
     r = b""
     if l < 253:
@@ -577,8 +580,9 @@ class CBlockHeader(object):
             r += struct.pack("<I", self.nTime)
             r += struct.pack("<I", self.nBits)
             r += struct.pack("<I", self.nNonce)
-            self.sha256 = uint256_from_str(hash256(r))
-            self.hash = encode(hash256(r)[::-1], 'hex_codec').decode('ascii')
+            rawhash = powhash(r)
+            self.sha256 = uint256_from_str(rawhash)
+            self.hash = encode(rawhash[::-1], 'hex_codec').decode('ascii')
 
     def rehash(self):
         self.sha256 = None
