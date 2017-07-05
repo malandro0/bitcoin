@@ -1850,7 +1850,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     if (IsWitnessEnabled(pindex->pprev, chainparams.GetConsensus())) {
         flags |= SCRIPT_VERIFY_WITNESS;
         flags |= SCRIPT_VERIFY_NULLDUMMY;
-        fSegwitSeasoned = IsWitnessSeasoned(pindex->pprev, chainparams.GetConsensus());
+        fSegwitSeasoned = IsSegwit2xSeasoned(pindex->pprev, chainparams.GetConsensus());
     }
 
     // SEGWIT2X signalling.
@@ -2931,7 +2931,7 @@ bool IsWitnessEnabled(const CBlockIndex* pindexPrev, const Consensus::Params& pa
     return (VersionBitsState(pindexPrev, params, Consensus::DEPLOYMENT_SEGWIT, versionbitscache) == THRESHOLD_ACTIVE);
 }
 
-bool IsWitnessSeasoned(const CBlockIndex* pindexPrev, const Consensus::Params& params, bool * const fFirstBlock)
+bool IsSegwit2xSeasoned(const CBlockIndex* pindexPrev, const Consensus::Params& params, bool * const fFirstBlock)
 {
     AssertLockHeld(cs_main);
     assert(pindexPrev);
@@ -3100,7 +3100,7 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Co
             fHaveWitness = true;
         }
 
-        fSegwitSeasoned = IsWitnessSeasoned(pindexPrev, consensusParams, &fBIP102FirstBlock);
+        fSegwitSeasoned = IsSegwit2xSeasoned(pindexPrev, consensusParams, &fBIP102FirstBlock);
     }
 
     // Max block base size limit
