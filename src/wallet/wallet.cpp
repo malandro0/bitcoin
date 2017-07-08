@@ -2692,6 +2692,15 @@ bool CWallet::CreateTransaction(const vector<CRecipient>& vecSend, CWalletTx& wt
 
         if (sign)
         {
+            uint32_t nHashType = SIGHASH_ALL;
+            // If we already forked, use replay protected tx by default.
+            // It is ok to use GetConfig here, because we'll just use replay
+            // protected transaction only fairly soon anyway, so we can just
+            // remove that call.
+            if (IsUAHFenabledForCurrentBlock(GetConfig())) {
+                nHashType |= SIGHASH_FORKID;
+            }
+
             CTransaction txNewConst(txNew);
             int nIn = 0;
             for (const auto& coin : setCoins)
@@ -2699,7 +2708,7 @@ bool CWallet::CreateTransaction(const vector<CRecipient>& vecSend, CWalletTx& wt
                 const CScript& scriptPubKey = coin.first->tx->vout[coin.second].scriptPubKey;
                 SignatureData sigdata;
 
-                if (!ProduceSignature(TransactionSignatureCreator(this, &txNewConst, nIn, coin.first->tx->vout[coin.second].nValue, SIGHASH_ALL), scriptPubKey, sigdata))
+                if (!ProduceSignature(TransactionSignatureCreator(this, &txNewConst, nIn, coin.first->tx->vout[coin.second].nValue, nHashType), scriptPubKey, sigdata))
                 {
                     strFailReason = _("Signing transaction failed");
                     return false;
