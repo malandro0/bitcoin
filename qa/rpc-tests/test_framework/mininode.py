@@ -79,12 +79,18 @@ def hash160(s):
 def hash256(s):
     return sha256(sha256(s))
 
+def blake2s(s):
+    return blake2.BLAKE2s(data=s, digest_size=32).digest()
+
+def blake2b(s):
+    return blake2.BLAKE2b(data=s, digest_size=32).digest()
+
 def upgrade_160_hash_to_256(algo):
     def algowrapper(s):
         return algo(s) + (b'\0' * 12)
     return algowrapper
 
-powalgos = (sha256, hash256, upgrade_160_hash_to_256(ripemd160), upgrade_160_hash_to_256(hash160))
+powalgos = (sha256, hash256, upgrade_160_hash_to_256(ripemd160), upgrade_160_hash_to_256(hash160), blake2s, blake2b)
 def powhash(s, nTime):
     if nTime < 1296688603:
         algo = hash256

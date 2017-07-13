@@ -20,6 +20,9 @@ enum class HashAlgorithm: unsigned int {
     SHA256d,
     RIPEMD160,
     HASH160,
+    BLAKE2S,
+    BLAKE2B,
+
     NUM_HASH_ALGOS,
 };
 

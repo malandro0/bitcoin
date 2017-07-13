@@ -11,6 +11,7 @@
 #include "chainparams.h"
 #include "consensus/params.h"
 #include "crypto/common.h"
+#include "crypto/blake2/ref/blake2.h"
 #include "streams.h"
 
 #include <cstdlib>
@@ -37,6 +38,13 @@ uint256 CBlockHeader::GetHash(const Consensus::Params& consensusParams) const
         case HashAlgorithm::HASH160:
             CHash160().Write(pbegin, ss.size()).Finalize((unsigned char*)&hash);
             break;
+        case HashAlgorithm::BLAKE2S:
+            blake2s(&hash, hash.size(), pbegin, ss.size(), NULL, 0);
+            break;
+        case HashAlgorithm::BLAKE2B:
+            blake2b(&hash, hash.size(), pbegin, ss.size(), NULL, 0);
+            break;
+
         case HashAlgorithm::NUM_HASH_ALGOS:
             // Should be impossible
             abort();

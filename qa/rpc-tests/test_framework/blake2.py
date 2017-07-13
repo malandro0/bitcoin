@@ -39,7 +39,7 @@ import struct, binascii, copy
 from ctypes import *
 
 
-DBUG  = True                     # True False
+DBUG  = False                    # True False
 DBUG2 = False                    # True False
 
 if DBUG:
