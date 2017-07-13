@@ -243,6 +243,7 @@ crypto_libbitcoin_crypto_a_SOURCES = \
   crypto/aes.cpp \
   crypto/aes.h \
   crypto/blake2/ref/blake2.h \
+  crypto/blake2/ref/blake2-impl.h \
   crypto/blake2/ref/blake2b-ref.c \
   crypto/blake2/ref/blake2s-ref.c \
   crypto/common.h \
