@@ -11,6 +11,7 @@
 #include "chainparams.h"
 #include "consensus/params.h"
 #include "crypto/common.h"
+#include "crypto/sph_keccak.h"
 #include "streams.h"
 
 #include <cstdlib>
@@ -37,6 +38,14 @@ uint256 CBlockHeader::GetHash(const Consensus::Params& consensusParams) const
         case HashAlgorithm::HASH160:
             CHash160().Write(pbegin, ss.size()).Finalize((unsigned char*)&hash);
             break;
+        case HashAlgorithm::KECCAK:
+        {
+            sph_keccak256_context ctx_keccak;
+            sph_keccak256_init(&ctx_keccak);
+            sph_keccak256(&ctx_keccak, pbegin, ss.size());
+            sph_keccak256_close(&ctx_keccak, &hash);
+            break;
+        }
         case HashAlgorithm::NUM_HASH_ALGOS:
             // Should be impossible
             abort();

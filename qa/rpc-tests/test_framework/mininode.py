@@ -28,6 +28,7 @@ import asyncore
 import time
 import sys
 import random
+from .keccak import keccak256
 from .util import hex_str_to_bytes, bytes_to_hex_str
 from io import BytesIO
 from codecs import encode
@@ -84,7 +85,12 @@ def upgrade_160_hash_to_256(algo):
         return algo(s) + (b'\0' * 12)
     return algowrapper
 
-powalgos = (sha256, hash256, upgrade_160_hash_to_256(ripemd160), upgrade_160_hash_to_256(hash160))
+def keccak(s):
+    ctx = keccak256()
+    ctx.write(s)
+    return ctx.digest()
+
+powalgos = (sha256, hash256, upgrade_160_hash_to_256(ripemd160), upgrade_160_hash_to_256(hash160), keccak)
 def powhash(s, nTime):
     if nTime < 1296688603:
         algo = hash256
