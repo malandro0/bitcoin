@@ -2697,7 +2697,7 @@ bool CWallet::CreateTransaction(const vector<CRecipient>& vecSend, CWalletTx& wt
             // It is ok to use GetConfig here, because we'll just use replay
             // protected transaction only fairly soon anyway, so we can just
             // remove that call.
-            if (IsUAHFenabledForCurrentBlock(GetConfig())) {
+            if (true /*IsUAHFenabledForCurrentBlock(GetConfig())*/) {
                 nHashType |= SIGHASH_FORKID;
             }
 

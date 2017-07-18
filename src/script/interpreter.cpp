@@ -191,6 +191,17 @@ static unsigned char GetHashType(const valtype &vchSig) {
     return vchSig[vchSig.size() - 1];
 }
 
+static void CleanupScriptCode(CScript &scriptCode,
+                              const std::vector<unsigned char> &vchSig,
+                              uint32_t flags) {
+    // Drop the signature in scripts when SIGHASH_FORKID is not used.
+    uint32_t nHashType = GetHashType(vchSig);
+    if (!(flags & SCRIPT_ENABLE_SIGHASH_FORKID) ||
+        !(nHashType & SIGHASH_FORKID)) {
+        scriptCode.FindAndDelete(CScript(vchSig));
+    }
+}
+
 bool static IsDefinedHashtypeSignature(const valtype &vchSig) {
     if (vchSig.size() == 0) {
         return false;
@@ -213,8 +224,15 @@ bool CheckSignatureEncoding(const vector<unsigned char> &vchSig, unsigned int fl
     } else if ((flags & SCRIPT_VERIFY_LOW_S) != 0 && !IsLowDERSignature(vchSig, serror)) {
         // serror is set
         return false;
-    } else if ((flags & SCRIPT_VERIFY_STRICTENC) != 0 && !IsDefinedHashtypeSignature(vchSig)) {
-        return set_error(serror, SCRIPT_ERR_SIG_HASHTYPE);
+    }
+    if ((flags & SCRIPT_VERIFY_STRICTENC) != 0) {
+        if (!IsDefinedHashtypeSignature(vchSig)) {
+            return set_error(serror, SCRIPT_ERR_SIG_HASHTYPE);
+        }
+        if (!(flags & SCRIPT_ENABLE_SIGHASH_FORKID) &&
+            (GetHashType(vchSig) & SIGHASH_FORKID)) {
+            return set_error(serror, SCRIPT_ERR_ILLEGAL_FORKID);
+        }
     }
     return true;
 }
@@ -901,21 +919,14 @@ bool EvalScript(vector<vector<unsigned char> >& stack, const CScript& script, un
                     }
                     // Subset of script starting at the most recent codeseparator
                     CScript scriptCode(pbegincodehash, pend);
+                    CleanupScriptCode(scriptCode, vchSig, flags);
 
                     // Drop the signature in pre-segwit scripts but not segwit scripts
-                    // or when SIGHASH_FORKID is used.
-                    unsigned char nHashType = GetHashType(vchSig);
                     if (sigversion == SIGVERSION_BASE) {
-                        if (nHashType & SIGHASH_FORKID) {
-                            if (!(flags & SCRIPT_ENABLE_SIGHASH_FORKID)) {
-                                return set_error(serror, SCRIPT_ERR_ILLEGAL_FORKID);
-                            }
-                        } else {
-                            scriptCode.FindAndDelete(CScript(vchSig));
-                        }
+                        scriptCode.FindAndDelete(CScript(vchSig));
                     }
 
-                    bool fSuccess = checker.CheckSig(vchSig, vchPubKey, scriptCode, sigversion);
+                    bool fSuccess = checker.CheckSig(vchSig, vchPubKey, scriptCode, sigversion, flags);
 
                     if (!fSuccess && (flags & SCRIPT_VERIFY_NULLFAIL) && vchSig.size())
                         return set_error(serror, SCRIPT_ERR_SIG_NULLFAIL);
@@ -972,16 +983,7 @@ bool EvalScript(vector<vector<unsigned char> >& stack, const CScript& script, un
                     {
                         valtype& vchSig = stacktop(-isig-k);
                         if (sigversion == SIGVERSION_BASE) {
-                            // Drop the signature in scripts when SIGHASH_FORKID
-                            // is not used.
-                            unsigned char nHashType = GetHashType(vchSig);
-                            if (nHashType & SIGHASH_FORKID) {
-                                if (!(flags & SCRIPT_ENABLE_SIGHASH_FORKID)) {
-                                    return set_error(serror, SCRIPT_ERR_ILLEGAL_FORKID);
-                                }
-                            } else {
-                                scriptCode.FindAndDelete(CScript(vchSig));
-                            }
+                            CleanupScriptCode(scriptCode, vchSig, flags);
                         }
                     }
 
@@ -1000,7 +1002,7 @@ bool EvalScript(vector<vector<unsigned char> >& stack, const CScript& script, un
                         }
 
                         // Check signature
-                        bool fOk = checker.CheckSig(vchSig, vchPubKey, scriptCode, sigversion);
+                        bool fOk = checker.CheckSig(vchSig, vchPubKey, scriptCode, sigversion, flags);
 
                         if (fOk) {
                             isig++;
@@ -1200,9 +1202,9 @@ PrecomputedTransactionData::PrecomputedTransactionData(const CTransaction& txTo)
     hashOutputs = GetOutputsHash(txTo);
 }
 
-uint256 SignatureHash(const CScript& scriptCode, const CTransaction& txTo, unsigned int nIn, int nHashType, const CAmount& amount, SigVersion sigversion, const PrecomputedTransactionData* cache)
+uint256 SignatureHash(const CScript& scriptCode, const CTransaction& txTo, unsigned int nIn, int nHashType, const CAmount& amount, SigVersion sigversion, const PrecomputedTransactionData* cache, uint32_t flags)
 {
-    if (sigversion == SIGVERSION_WITNESS_V0 || nHashType & SIGHASH_FORKID) {
+    if (sigversion == SIGVERSION_WITNESS_V0 || ((nHashType & SIGHASH_FORKID) && (flags & SCRIPT_ENABLE_SIGHASH_FORKID))) {
         uint256 hashPrevouts;
         uint256 hashSequence;
         uint256 hashOutputs;
@@ -1275,7 +1277,7 @@ bool TransactionSignatureChecker::VerifySignature(const std::vector<unsigned cha
     return pubkey.Verify(sighash, vchSig);
 }
 
-bool TransactionSignatureChecker::CheckSig(const vector<unsigned char>& vchSigIn, const vector<unsigned char>& vchPubKey, const CScript& scriptCode, SigVersion sigversion) const
+bool TransactionSignatureChecker::CheckSig(const vector<unsigned char>& vchSigIn, const vector<unsigned char>& vchPubKey, const CScript& scriptCode, SigVersion sigversion, uint32_t flags) const
 {
     CPubKey pubkey(vchPubKey);
     if (!pubkey.IsValid())
@@ -1285,10 +1287,10 @@ bool TransactionSignatureChecker::CheckSig(const vector<unsigned char>& vchSigIn
     vector<unsigned char> vchSig(vchSigIn);
     if (vchSig.empty())
         return false;
-    int nHashType = vchSig.back();
+    int nHashType = GetHashType(vchSig);
     vchSig.pop_back();
 
-    uint256 sighash = SignatureHash(scriptCode, *txTo, nIn, nHashType, amount, sigversion, this->txdata);
+    uint256 sighash = SignatureHash(scriptCode, *txTo, nIn, nHashType, amount, sigversion, this->txdata, flags);
 
     if (!VerifySignature(vchSig, pubkey, sighash))
         return false;
@@ -1440,6 +1442,11 @@ bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, const C
     bool hadWitness = false;
 
     set_error(serror, SCRIPT_ERR_UNKNOWN_ERROR);
+
+    // If FORKID is enabled, we also ensure strict encoding.
+    if (flags & SCRIPT_ENABLE_SIGHASH_FORKID) {
+        flags |= SCRIPT_VERIFY_STRICTENC;
+    }
 
     if ((flags & SCRIPT_VERIFY_SIGPUSHONLY) != 0 && !scriptSig.IsPushOnly()) {
         return set_error(serror, SCRIPT_ERR_SIG_PUSHONLY);
