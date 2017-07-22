@@ -186,7 +186,16 @@ bool ProduceSignature(const BaseSignatureCreator& creator, const CScript& fromPu
     sigdata.scriptSig = PushAll(result);
 
     // Test solution
-    return solved && VerifyScript(sigdata.scriptSig, fromPubKey, &sigdata.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS | SCRIPT_ENABLE_SIGHASH_FORKID, creator.Checker());
+    // Because we have no good way to get nHashType here, we just try with and
+    // without enabling it. One of the two must pass.
+    // TODO: Remove after the fork.
+    return solved &&
+           (VerifyScript(sigdata.scriptSig, fromPubKey, &sigdata.scriptWitness,
+                         STANDARD_SCRIPT_VERIFY_FLAGS, creator.Checker()) ||
+            VerifyScript(sigdata.scriptSig, fromPubKey, &sigdata.scriptWitness,
+                         STANDARD_SCRIPT_VERIFY_FLAGS |
+                             SCRIPT_ENABLE_SIGHASH_FORKID,
+                         creator.Checker()));
 }
 
 SignatureData DataFromTransaction(const CMutableTransaction& tx, unsigned int nIn)
@@ -258,7 +267,14 @@ static vector<valtype> CombineMultisig(const CScript& scriptPubKey, const BaseSi
             if (sigs.count(pubkey))
                 continue; // Already got a sig for this pubkey
 
-            if (checker.CheckSig(sig, pubkey, scriptPubKey, sigversion, SCRIPT_ENABLE_SIGHASH_FORKID))
+            // If the transaction is using SIGHASH_FORKID, we ned to set the
+            // apropriate flags.
+            // TODO: Remove after the Hard Fork.
+            uint32_t flags = STANDARD_SCRIPT_VERIFY_FLAGS;
+            if (sig.back() & SIGHASH_FORKID) {
+                flags |= SCRIPT_ENABLE_SIGHASH_FORKID;
+            }
+            if (checker.CheckSig(sig, pubkey, scriptPubKey, sigversion, flags))
             {
                 sigs[pubkey] = sig;
                 break;
