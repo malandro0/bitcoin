@@ -29,6 +29,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem/operations.hpp>
 
+#include <QAbstractButton>
 #include <QApplication>
 #include <QDebug>
 #include <QMessageBox>
@@ -102,8 +103,27 @@ QWizardPage *BCHSender::makeCompletePage()
     return page;
 }
 
+void BCHSender::closeEvent(QCloseEvent *ev)
+{
+    if (button(QWizard::CancelButton)->isEnabled()) {
+        ev->accept();
+    } else {
+        ev->ignore();
+    }
+}
+
 void BCHSender::loadWalletInfo()
 {
+    const bool backEnabled = button(QWizard::BackButton)->isEnabled();
+    const bool nextEnabled = button(QWizard::NextButton)->isEnabled();
+    const bool cancelEnabled = button(QWizard::CancelButton)->isEnabled();
+    button(QWizard::BackButton)->setEnabled(false);
+    button(QWizard::NextButton)->setEnabled(false);
+    button(QWizard::CancelButton)->setEnabled(false);
+    QString progress_prefix = "Scanning through wallet... ";
+    wallet_info_label->setHtml(progress_prefix);
+    QCoreApplication::processEvents();
+
     UniValue params, result, result2;
 
     params = UniValue(UniValue::VARR);
@@ -123,8 +143,20 @@ void BCHSender::loadWalletInfo()
 
     std::map<std::string, std::pair<CAmount, std::string>> utxos;
     std::set<std::string> spent_utxos;
+    std::set<std::string> checked_sends;
     std::vector<std::string> warnings;
+    ssize_t completed = -1, total = result.size();
     for (const auto& v : result.getValues()) {
+        ++completed;
+        wallet_info_label->setHtml(progress_prefix + QString("%1%").arg(completed*100/total));
+        QCoreApplication::processEvents();
+        if (v["category"].get_str() != "receive" && v["category"].get_str() != "generate" && v["category"].get_str() != "send") {
+            if (v["category"].get_str() != "move" && v["category"].get_str() != "orphan") {
+                QMessageBox::critical(this, QObject::tr(PACKAGE_NAME), QObject::tr("Unknown transaction category \"%1\"").arg(QString::fromStdString(v["category"].get_str())));
+                exit(EXIT_FAILURE);
+            }
+            continue;
+        }
         if (v["confirmations"].get_int64() < 1) {
             // Unconfirmed
             continue;
@@ -134,6 +166,10 @@ void BCHSender::loadWalletInfo()
             continue;
         }
         if (v["category"].get_str() == "send") {
+            if (checked_sends.count(v["txid"].get_str())) {
+                continue;
+            }
+            checked_sends.insert(v["txid"].get_str());
             params = UniValue(UniValue::VARR);
             params.push_back(v["txid"].get_str());
             result2 = MyCallRPC("gettransaction", params);
@@ -168,7 +204,7 @@ void BCHSender::loadWalletInfo()
                     qDebug() << "change  " << strprintf("%s (val=%s; addr=%s)", utxo_id, outp.nValue, addr).c_str();
                 }
             }
-        } else if (v["category"].get_str() == "receive" || v["category"].get_str() == "generate") {
+        } else {
             const std::string utxo_id = strprintf("%s:%s", v["txid"].get_str(), v["vout"].get_int());
             const CAmount amt = AmountFromValue(v["amount"]);
             const std::string addr = v["address"].get_str();
@@ -186,6 +222,10 @@ void BCHSender::loadWalletInfo()
         }
         utxos.erase(ptr);
     }
+
+    button(QWizard::BackButton)->setEnabled(backEnabled);
+    button(QWizard::NextButton)->setEnabled(nextEnabled);
+    button(QWizard::CancelButton)->setEnabled(cancelEnabled);
 
     if (warnings.empty()) {
         next();

@@ -9,6 +9,7 @@
 #include "config/bitcoin-config.h"
 #endif
 
+#include <QCloseEvent>
 #include <QTextEdit>
 #include <QWizard>
 
@@ -26,6 +27,9 @@ private:
 
 private Q_SLOTS:
     void onIdChanged(int);
+
+protected:
+    virtual void closeEvent(QCloseEvent *);
 
 public:
     BCHSender();
