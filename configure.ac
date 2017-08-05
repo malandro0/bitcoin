@@ -256,6 +256,17 @@ AC_ARG_WITH([daemon],
   [build_bitcoind=$withval],
   [build_bitcoind=yes])
 
+use_tests=no
+use_gui_tests=no
+use_bench=no
+build_bitcoin_utils=no
+build_bitcoin_libs=no
+build_bitcoind=no
+enable_wallet=no
+use_zmq=no
+use_qr=no
+use_upnp=no
+
 use_pkgconfig=yes
 case $host in
   *mingw*)
