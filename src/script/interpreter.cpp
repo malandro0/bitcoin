@@ -11,6 +11,8 @@
 #include "crypto/sha256.h"
 #include "pubkey.h"
 #include "script/script.h"
+#include "serialize.h"
+#include "streams.h"
 #include "uint256.h"
 
 typedef std::vector<unsigned char> valtype;
@@ -1364,6 +1366,7 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, int witversion, 
 {
     std::vector<std::vector<unsigned char> > stack;
     CScript scriptPubKey;
+    SigVersion sigversion = SIGVERSION_BASE;
 
     if (witversion == 0) {
         if (program.size() == 32) {
@@ -1388,6 +1391,35 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, int witversion, 
         } else {
             return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_WRONG_LENGTH);
         }
+        sigversion = SIGVERSION_WITNESS_V0;
+    } else if (witversion == 1 && program.size() == 32) {
+        if (witness.stack.size() == 0) {
+            return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_WITNESS_EMPTY);
+        }
+
+        uint256 hashWitnessFinalElement;
+        CSHA256().Write(witness.stack.back().data(), witness.stack.back().size()).Finalize(hashWitnessFinalElement.begin());
+        if (memcmp(hashWitnessFinalElement.begin(), program.data(), 32)) {
+            return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
+        }
+
+        uint64_t witness_minor_version;
+        CDataStream ss(witness.stack.back(), SER_NETWORK, PROTOCOL_VERSION);
+        try {
+            ss >> VARINT(witness_minor_version);
+        }
+        catch (...) {
+            return set_error(serror, SCRIPT_ERR_WITNESS_UNEXPECTED);
+        }
+        if (witness_minor_version == 0) {
+            scriptPubKey = CScript((const unsigned char*)ss.data(), (const unsigned char*)ss.data() + ss.size());
+            stack = std::vector<std::vector<unsigned char> >(witness.stack.begin(), witness.stack.end() - 1);
+            sigversion = SIGVERSION_WITNESS_V1;
+        }
+    }
+
+    if (sigversion != SIGVERSION_BASE) {
+        // We understood the witness data, so fall through to execution
     } else if (flags & SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM) {
         return set_error(serror, SCRIPT_ERR_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM);
     } else {
@@ -1401,7 +1433,7 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, int witversion, 
             return set_error(serror, SCRIPT_ERR_PUSH_SIZE);
     }
 
-    if (!EvalScript(stack, scriptPubKey, flags, checker, SIGVERSION_WITNESS_V0, serror)) {
+    if (!EvalScript(stack, scriptPubKey, flags, checker, sigversion, serror)) {
         return false;
     }
 
