@@ -245,6 +245,8 @@ bool static CheckMinimalPush(const valtype& data, opcodetype opcode) {
     return true;
 }
 
+static const valtype vchTrue(1, 1);
+
 bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& script, unsigned int flags, const BaseSignatureChecker& checker, SigVersion sigversion, ScriptError* serror)
 {
     static const CScriptNum bnZero(0);
@@ -253,7 +255,6 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
     // static const CScriptNum bnTrue(1);
     static const valtype vchFalse(0);
     // static const valtype vchZero(0);
-    static const valtype vchTrue(1, 1);
 
     CScript::const_iterator pc = script.begin();
     CScript::const_iterator pend = script.end();
@@ -1435,6 +1436,14 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, int witversion, 
 
     if (!EvalScript(stack, scriptPubKey, flags, checker, sigversion, serror)) {
         return false;
+    }
+
+    if (sigversion >= SIGVERSION_WITNESS_V1 && !stack.empty() && !stack.back().empty() && stack.back() != vchTrue) {
+        // A single tail-call is allowed
+        scriptPubKey = CScript(stack.back().begin(), stack.back().end());
+        if (!EvalScript(stack, scriptPubKey, flags, checker, sigversion, serror)) {
+            return false;
+        }
     }
 
     // Scripts inside witness implicitly require cleanstack behaviour
