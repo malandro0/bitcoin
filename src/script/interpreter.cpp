@@ -222,8 +222,8 @@ bool static IsLowDERSignature(const valtype &vchSig, ScriptError* serror) {
     return true;
 }
 
-bool static IsDefinedHashtypeSignature(const uint64_t hashtype) {
-    unsigned char nHashType = hashtype & (~(SIGHASH_ANYONECANPAY));
+bool static IsDefinedHashtypeSignature(const uint64_t hashtype, SigVersion sigversion) {
+    unsigned char nHashType = hashtype & (~(SIGHASH_ANYONECANPAY | SIGHASH_WITNESS_DEPTH));
     if (nHashType < SIGHASH_ALL || nHashType > SIGHASH_SINGLE) {
         return false;
     }
@@ -231,11 +231,11 @@ bool static IsDefinedHashtypeSignature(const uint64_t hashtype) {
     return true;
 }
 
-bool static IsDefinedHashtypeSignature(const valtype &vchSig) {
+bool static IsDefinedHashtypeSignature(const valtype &vchSig, SigVersion sigversion) {
     if (vchSig.size() == 0) {
         return false;
     }
-    return IsDefinedHashtypeSignature(vchSig[vchSig.size() - 1]);
+    return IsDefinedHashtypeSignature(vchSig[vchSig.size() - 1], sigversion);
 }
 
 bool CheckSignatureEncoding(const std::vector<unsigned char> &vchSig, unsigned int flags, SigVersion sigversion, ScriptError* serror) {
@@ -257,7 +257,7 @@ bool CheckSignatureEncoding(const std::vector<unsigned char> &vchSig, unsigned i
         if (!WitnessV1SignatureToHashType(vchSig, &hashtype)) {
             return set_error(serror, SCRIPT_ERR_SIG_HASHTYPE);
         }
-        if ((flags & SCRIPT_VERIFY_STRICTENC) != 0 && !IsDefinedHashtypeSignature(hashtype)) {
+        if ((flags & SCRIPT_VERIFY_STRICTENC) != 0 && !IsDefinedHashtypeSignature(hashtype, sigversion)) {
             return set_error(serror, SCRIPT_ERR_SIG_HASHTYPE);
         }
         // TODO: Check condition script?
@@ -268,7 +268,7 @@ bool CheckSignatureEncoding(const std::vector<unsigned char> &vchSig, unsigned i
     } else if ((flags & SCRIPT_VERIFY_LOW_S) != 0 && !IsLowDERSignature(vchSig, serror)) {
         // serror is set
         return false;
-    } else if ((flags & SCRIPT_VERIFY_STRICTENC) != 0 && !IsDefinedHashtypeSignature(vchSig)) {
+    } else if ((flags & SCRIPT_VERIFY_STRICTENC) != 0 && !IsDefinedHashtypeSignature(vchSig, sigversion)) {
         return set_error(serror, SCRIPT_ERR_SIG_HASHTYPE);
     }
     return true;
@@ -1284,6 +1284,9 @@ uint256 SignatureHash(const CScript& scriptCode, const CTransaction& txTo, unsig
         ss << txTo.vin[nIn].prevout;
         ss << scriptCode;
         ss << amount;
+        if (sigversion >= SIGVERSION_WITNESS_V1 && (nHashType & SIGHASH_WITNESS_DEPTH)) {
+            ss << txTo.vin[nIn].scriptWitness.stack.size();
+        }
         ss << txTo.vin[nIn].nSequence;
         // Outputs (none/one/all, depending on flags)
         ss << hashOutputs;
