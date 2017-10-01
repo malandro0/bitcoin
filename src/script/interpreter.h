@@ -124,7 +124,8 @@ enum SigVersion
     SIGVERSION_WITNESS_V1 = 2,
 };
 
-uint256 SignatureHash(const CScript &scriptCode, const CTransaction& txTo, unsigned int nIn, int nHashType, const CAmount& amount, SigVersion sigversion, const PrecomputedTransactionData* cache = nullptr);
+static const std::vector<unsigned char> empty_extra_data;
+uint256 SignatureHash(const CScript &scriptCode, const CTransaction& txTo, unsigned int nIn, int nHashType, const CAmount& amount, SigVersion sigversion, const std::vector<unsigned char>& extra_data, const PrecomputedTransactionData* cache = nullptr);
 
 class BaseSignatureChecker
 {

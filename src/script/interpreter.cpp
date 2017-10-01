@@ -1185,7 +1185,7 @@ PrecomputedTransactionData::PrecomputedTransactionData(const CTransaction& txTo)
     hashOutputs = GetOutputsHash(txTo);
 }
 
-uint256 SignatureHash(const CScript& scriptCode, const CTransaction& txTo, unsigned int nIn, int nHashType, const CAmount& amount, SigVersion sigversion, const PrecomputedTransactionData* cache)
+uint256 SignatureHash(const CScript& scriptCode, const CTransaction& txTo, unsigned int nIn, int nHashType, const CAmount& amount, SigVersion sigversion, const std::vector<unsigned char>& extra_data, const PrecomputedTransactionData* cache)
 {
     if (sigversion >= SIGVERSION_WITNESS_V0) {
         uint256 hashPrevouts;
@@ -1226,11 +1226,17 @@ uint256 SignatureHash(const CScript& scriptCode, const CTransaction& txTo, unsig
         ss << hashOutputs;
         // Locktime
         ss << txTo.nLockTime;
-        // Sighash type
-        ss << nHashType;
+        if (sigversion < SIGVERSION_WITNESS_V1) {
+            // Sighash type
+            ss << nHashType;
+        }
+        // Includes sighash flags for SIGVERSION_WITNESS_V1
+        ss.write((const char*)extra_data.data(), extra_data.size());
 
         return ss.GetHash();
     }
+
+    assert(extra_data.empty());
 
     static const uint256 one(uint256S("0000000000000000000000000000000000000000000000000000000000000001"));
     if (nIn >= txTo.vin.size()) {
@@ -1266,14 +1272,43 @@ bool TransactionSignatureChecker::CheckSig(const std::vector<unsigned char>& vch
     if (!pubkey.IsValid())
         return false;
 
-    // Hash type is one byte tacked on to the end of the signature
-    std::vector<unsigned char> vchSig(vchSigIn);
-    if (vchSig.empty())
+    if (vchSigIn.empty())
         return false;
-    int nHashType = vchSig.back();
-    vchSig.pop_back();
 
-    uint256 sighash = SignatureHash(scriptCode, *txTo, nIn, nHashType, amount, sigversion, this->txdata);
+    // Hash type is one byte tacked on to the end of the signature
+    std::vector<unsigned char> vchSig, extra_data;
+    uint64_t nHashType;
+    if (sigversion >= SIGVERSION_WITNESS_V1) {
+        if (vchSig.size() < 65) {
+            return false;
+        }
+
+        vchSig.push_back(0x30);  // compound signature
+        vchSig.push_back(71);    // total length
+        vchSig.push_back(2);     // R is an integer
+        vchSig.push_back(33);    // length of R
+        vchSig.push_back(0);     // padding to avoid sign
+        vchSig.insert(vchSig.end(), vchSigIn.begin(), vchSigIn.begin() + 32);  // R
+        vchSig.push_back(2);     // S is an integer
+        vchSig.push_back(33);    // length of S
+        vchSig.push_back(0);     // padding to avoid sign
+        vchSig.insert(vchSig.end(), vchSigIn.begin() + 32, vchSigIn.begin() + 64);  // S
+
+        extra_data = std::vector<unsigned char>(vchSigIn.begin() + 64, vchSigIn.end());
+        CDataStream ss(extra_data, SER_NETWORK, PROTOCOL_VERSION);
+        try {
+            ss >> VARINT(nHashType);
+        }
+        catch (...) {
+            return false;
+        }
+    } else {
+        nHashType = vchSigIn.back();
+        vchSig = vchSigIn;
+        vchSig.pop_back();
+    }
+
+    uint256 sighash = SignatureHash(scriptCode, *txTo, nIn, nHashType, amount, sigversion, extra_data, this->txdata);
 
     if (!VerifySignature(vchSig, pubkey, sighash))
         return false;

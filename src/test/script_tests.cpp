@@ -352,7 +352,8 @@ public:
 
     TestBuilder& PushSig(const CKey& key, int nHashType = SIGHASH_ALL, unsigned int lenR = 32, unsigned int lenS = 32, SigVersion sigversion = SIGVERSION_BASE, CAmount amount = 0)
     {
-        uint256 hash = SignatureHash(script, spendTx, 0, nHashType, amount, sigversion);
+        assert(sigversion < SIGVERSION_WITNESS_V1);  // or else we need to handle extra_data
+        uint256 hash = SignatureHash(script, spendTx, 0, nHashType, amount, sigversion, empty_extra_data);
         std::vector<unsigned char> vchSig, r, s;
         uint32_t iter = 0;
         do {
@@ -1020,7 +1021,7 @@ BOOST_AUTO_TEST_CASE(script_PushData)
 CScript
 sign_multisig(CScript scriptPubKey, std::vector<CKey> keys, CTransaction transaction)
 {
-    uint256 hash = SignatureHash(scriptPubKey, transaction, 0, SIGHASH_ALL, 0, SIGVERSION_BASE);
+    uint256 hash = SignatureHash(scriptPubKey, transaction, 0, SIGHASH_ALL, 0, SIGVERSION_BASE, empty_extra_data);
 
     CScript result;
     //
@@ -1216,15 +1217,15 @@ BOOST_AUTO_TEST_CASE(script_combineSigs)
 
     // A couple of partially-signed versions:
     std::vector<unsigned char> sig1;
-    uint256 hash1 = SignatureHash(scriptPubKey, txTo, 0, SIGHASH_ALL, 0, SIGVERSION_BASE);
+    uint256 hash1 = SignatureHash(scriptPubKey, txTo, 0, SIGHASH_ALL, 0, SIGVERSION_BASE, empty_extra_data);
     BOOST_CHECK(keys[0].Sign(hash1, sig1));
     sig1.push_back(SIGHASH_ALL);
     std::vector<unsigned char> sig2;
-    uint256 hash2 = SignatureHash(scriptPubKey, txTo, 0, SIGHASH_NONE, 0, SIGVERSION_BASE);
+    uint256 hash2 = SignatureHash(scriptPubKey, txTo, 0, SIGHASH_NONE, 0, SIGVERSION_BASE, empty_extra_data);
     BOOST_CHECK(keys[1].Sign(hash2, sig2));
     sig2.push_back(SIGHASH_NONE);
     std::vector<unsigned char> sig3;
-    uint256 hash3 = SignatureHash(scriptPubKey, txTo, 0, SIGHASH_SINGLE, 0, SIGVERSION_BASE);
+    uint256 hash3 = SignatureHash(scriptPubKey, txTo, 0, SIGHASH_SINGLE, 0, SIGVERSION_BASE, empty_extra_data);
     BOOST_CHECK(keys[2].Sign(hash3, sig3));
     sig3.push_back(SIGHASH_SINGLE);
 

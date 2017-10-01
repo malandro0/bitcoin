@@ -27,7 +27,10 @@ bool TransactionSignatureCreator::CreateSig(std::vector<unsigned char>& vchSig, 
     if (sigversion >= SIGVERSION_WITNESS_V0 && !key.IsCompressed())
         return false;
 
-    uint256 hash = SignatureHash(scriptCode, *txTo, nIn, nHashType, amount, sigversion);
+    // TODO: Build extra_data and convert signature to new format
+    assert(sigversion < SIGVERSION_WITNESS_V1);
+
+    uint256 hash = SignatureHash(scriptCode, *txTo, nIn, nHashType, amount, sigversion, empty_extra_data);
     if (!key.Sign(hash, vchSig))
         return false;
     vchSig.push_back((unsigned char)nHashType);
