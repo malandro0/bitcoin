@@ -108,9 +108,6 @@ enum
     SCRIPT_VERIFY_WITNESS_PUBKEYTYPE = (1U << 15),
 };
 
-std::vector<unsigned char> WitnessV1SignatureToDER(const std::vector<unsigned char>& vchSigIn);
-bool CheckSignatureEncoding(const std::vector<unsigned char> &vchSig, unsigned int flags, ScriptError* serror);
-
 struct PrecomputedTransactionData
 {
     uint256 hashPrevouts, hashSequence, hashOutputs;
@@ -124,6 +121,9 @@ enum SigVersion
     SIGVERSION_WITNESS_V0 = 1,
     SIGVERSION_WITNESS_V1 = 2,
 };
+
+std::vector<unsigned char> WitnessV1SignatureToDER(const std::vector<unsigned char>& vchSigIn);
+bool CheckSignatureEncoding(const std::vector<unsigned char> &vchSig, unsigned int flags, SigVersion, ScriptError* serror);
 
 static const std::vector<unsigned char> empty_extra_data;
 uint256 SignatureHash(const CScript &scriptCode, const CTransaction& txTo, unsigned int nIn, int nHashType, const CAmount& amount, SigVersion sigversion, const std::vector<unsigned char>& extra_data, const PrecomputedTransactionData* cache = nullptr);

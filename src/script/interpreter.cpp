@@ -123,6 +123,19 @@ std::vector<unsigned char> WitnessV1SignatureToDER(const std::vector<unsigned ch
     return std::move(vchSig);
 }
 
+bool WitnessV1SignatureToHashType(const std::vector<unsigned char>& vchSigIn, uint64_t* out_hashtype)
+{
+    const auto& extra_data = std::vector<unsigned char>(vchSigIn.begin() + 64, vchSigIn.end());
+    CDataStream ss(extra_data, SER_NETWORK, PROTOCOL_VERSION);
+    try {
+        ss >> VARINT(*out_hashtype);
+    }
+    catch (...) {
+        return false;
+    }
+    return true;
+}
+
 /**
  * A canonical signature exists of: <30> <total len> <02> <len R> <R> <02> <len S> <S> <hashtype>
  * Where R and S are not negative (their first byte has its highest bit not set), and not
@@ -209,21 +222,45 @@ bool static IsLowDERSignature(const valtype &vchSig, ScriptError* serror) {
     return true;
 }
 
-bool static IsDefinedHashtypeSignature(const valtype &vchSig) {
-    if (vchSig.size() == 0) {
+bool static IsDefinedHashtypeSignature(const uint64_t hashtype) {
+    unsigned char nHashType = hashtype & (~(SIGHASH_ANYONECANPAY));
+    if (nHashType < SIGHASH_ALL || nHashType > SIGHASH_SINGLE) {
         return false;
     }
-    unsigned char nHashType = vchSig[vchSig.size() - 1] & (~(SIGHASH_ANYONECANPAY));
-    if (nHashType < SIGHASH_ALL || nHashType > SIGHASH_SINGLE)
-        return false;
 
     return true;
 }
 
-bool CheckSignatureEncoding(const std::vector<unsigned char> &vchSig, unsigned int flags, ScriptError* serror) {
+bool static IsDefinedHashtypeSignature(const valtype &vchSig) {
+    if (vchSig.size() == 0) {
+        return false;
+    }
+    return IsDefinedHashtypeSignature(vchSig[vchSig.size() - 1]);
+}
+
+bool CheckSignatureEncoding(const std::vector<unsigned char> &vchSig, unsigned int flags, SigVersion sigversion, ScriptError* serror) {
     // Empty signature. Not strictly DER encoded, but allowed to provide a
     // compact way to provide an invalid signature for use with CHECK(MULTI)SIG
     if (vchSig.size() == 0) {
+        return true;
+    }
+    if (sigversion >= SIGVERSION_WITNESS_V1) {
+        if (vchSig.size() < 65) {
+            return set_error(serror, SCRIPT_ERR_SIG_DER);
+        }
+        const std::vector<unsigned char> der_sig = WitnessV1SignatureToDER(vchSig);
+        if ((flags & SCRIPT_VERIFY_LOW_S) != 0 && !IsLowDERSignature(der_sig, serror)) {
+            // serror is set
+            return false;
+        }
+        uint64_t hashtype;
+        if (!WitnessV1SignatureToHashType(vchSig, &hashtype)) {
+            return set_error(serror, SCRIPT_ERR_SIG_HASHTYPE);
+        }
+        if ((flags & SCRIPT_VERIFY_STRICTENC) != 0 && !IsDefinedHashtypeSignature(hashtype)) {
+            return set_error(serror, SCRIPT_ERR_SIG_HASHTYPE);
+        }
+        // TODO: Check condition script?
         return true;
     }
     if ((flags & (SCRIPT_VERIFY_DERSIG | SCRIPT_VERIFY_LOW_S | SCRIPT_VERIFY_STRICTENC)) != 0 && !IsValidSignatureEncoding(vchSig)) {
@@ -924,7 +961,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                         scriptCode.FindAndDelete(CScript(vchSig));
                     }
 
-                    if (!CheckSignatureEncoding(vchSig, flags, serror) || !CheckPubKeyEncoding(vchPubKey, flags, sigversion, serror)) {
+                    if (!CheckSignatureEncoding(vchSig, flags, sigversion, serror) || !CheckPubKeyEncoding(vchPubKey, flags, sigversion, serror)) {
                         //serror is set
                         return false;
                     }
@@ -998,7 +1035,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                         // Note how this makes the exact order of pubkey/signature evaluation
                         // distinguishable by CHECKMULTISIG NOT if the STRICTENC flag is set.
                         // See the script_(in)valid tests for details.
-                        if (!CheckSignatureEncoding(vchSig, flags, serror) || !CheckPubKeyEncoding(vchPubKey, flags, sigversion, serror)) {
+                        if (!CheckSignatureEncoding(vchSig, flags, sigversion, serror) || !CheckPubKeyEncoding(vchPubKey, flags, sigversion, serror)) {
                             // serror is set
                             return false;
                         }
