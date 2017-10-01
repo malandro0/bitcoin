@@ -1279,12 +1279,12 @@ bool TransactionSignatureChecker::CheckSig(const std::vector<unsigned char>& vch
     std::vector<unsigned char> vchSig, extra_data;
     uint64_t nHashType;
     if (sigversion >= SIGVERSION_WITNESS_V1) {
-        if (vchSig.size() < 65) {
+        if (vchSigIn.size() < 65) {
             return false;
         }
 
         vchSig.push_back(0x30);  // compound signature
-        vchSig.push_back(71);    // total length
+        vchSig.push_back(70);    // total length
         vchSig.push_back(2);     // R is an integer
         vchSig.push_back(33);    // length of R
         vchSig.push_back(0);     // padding to avoid sign
