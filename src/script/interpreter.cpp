@@ -1559,8 +1559,9 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, int witversion, 
     }
 
     // Scripts inside witness implicitly require cleanstack behaviour
-    if (stack.size() != 1)
+    if (sigversion == SIGVERSION_WITNESS_V0 && stack.size() != 1) {
         return set_error(serror, SCRIPT_ERR_EVAL_FALSE);
+    }
     if (!CastToBool(stack.back()))
         return set_error(serror, SCRIPT_ERR_EVAL_FALSE);
     return true;
