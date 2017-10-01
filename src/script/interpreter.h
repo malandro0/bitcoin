@@ -108,6 +108,7 @@ enum
     SCRIPT_VERIFY_WITNESS_PUBKEYTYPE = (1U << 15),
 };
 
+std::vector<unsigned char> WitnessV1SignatureToDER(const std::vector<unsigned char>& vchSigIn);
 bool CheckSignatureEncoding(const std::vector<unsigned char> &vchSig, unsigned int flags, ScriptError* serror);
 
 struct PrecomputedTransactionData

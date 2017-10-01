@@ -97,6 +97,32 @@ bool static IsCompressedPubKey(const valtype &vchPubKey) {
     return true;
 }
 
+std::vector<unsigned char> WitnessV1SignatureToDER(const std::vector<unsigned char>& vchSigIn)
+{
+    // Format: [32-byte R] [32-byte S] [sighash] [condition script]
+    // This only deals with the first 64 bytes (R and S)
+
+    std::vector<unsigned char> vchSig;
+
+    if (vchSigIn.size() < 64) {
+        return std::move(vchSig);
+    }
+
+    vchSig.reserve(72);
+    vchSig.push_back(0x30);  // compound signature
+    vchSig.push_back(70);    // total length
+    vchSig.push_back(2);     // R is an integer
+    vchSig.push_back(33);    // length of R
+    vchSig.push_back(0);     // padding to avoid sign
+    vchSig.insert(vchSig.end(), vchSigIn.begin(), vchSigIn.begin() + 32);  // R
+    vchSig.push_back(2);     // S is an integer
+    vchSig.push_back(33);    // length of S
+    vchSig.push_back(0);     // padding to avoid sign
+    vchSig.insert(vchSig.end(), vchSigIn.begin() + 32, vchSigIn.begin() + 64);  // S
+
+    return std::move(vchSig);
+}
+
 /**
  * A canonical signature exists of: <30> <total len> <02> <len R> <R> <02> <len S> <S> <hashtype>
  * Where R and S are not negative (their first byte has its highest bit not set), and not
@@ -1283,16 +1309,7 @@ bool TransactionSignatureChecker::CheckSig(const std::vector<unsigned char>& vch
             return false;
         }
 
-        vchSig.push_back(0x30);  // compound signature
-        vchSig.push_back(70);    // total length
-        vchSig.push_back(2);     // R is an integer
-        vchSig.push_back(33);    // length of R
-        vchSig.push_back(0);     // padding to avoid sign
-        vchSig.insert(vchSig.end(), vchSigIn.begin(), vchSigIn.begin() + 32);  // R
-        vchSig.push_back(2);     // S is an integer
-        vchSig.push_back(33);    // length of S
-        vchSig.push_back(0);     // padding to avoid sign
-        vchSig.insert(vchSig.end(), vchSigIn.begin() + 32, vchSigIn.begin() + 64);  // S
+        vchSig = WitnessV1SignatureToDER(vchSigIn);
 
         extra_data = std::vector<unsigned char>(vchSigIn.begin() + 64, vchSigIn.end());
         CDataStream ss(extra_data, SER_NETWORK, PROTOCOL_VERSION);
