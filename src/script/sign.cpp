@@ -231,6 +231,10 @@ static std::vector<valtype> CombineMultisig(const CScript& scriptPubKey, const B
                                const std::vector<valtype>& vSolutions,
                                const std::vector<valtype>& sigs1, const std::vector<valtype>& sigs2, SigVersion sigversion)
 {
+    // TODO: Need to build stack for CheckSig
+    assert(sigversion <= SIGVERSION_WITNESS_V1);
+    static const std::vector<std::vector<unsigned char>> empty_stack;
+
     // Combine all the signatures we've got:
     std::set<valtype> allsigs;
     for (const valtype& v : sigs1)
@@ -257,8 +261,7 @@ static std::vector<valtype> CombineMultisig(const CScript& scriptPubKey, const B
             if (sigs.count(pubkey))
                 continue; // Already got a sig for this pubkey
 
-            if (checker.CheckSig(sig, pubkey, scriptPubKey, sigversion))
-            {
+            if (checker.CheckSig(sig, pubkey, scriptPubKey, sigversion, empty_stack)) {
                 sigs[pubkey] = sig;
                 break;
             }
@@ -395,7 +398,7 @@ class DummySignatureChecker : public BaseSignatureChecker
 public:
     DummySignatureChecker() {}
 
-    bool CheckSig(const std::vector<unsigned char>& scriptSig, const std::vector<unsigned char>& vchPubKey, const CScript& scriptCode, SigVersion sigversion) const override
+    bool CheckSig(const std::vector<unsigned char>& scriptSig, const std::vector<unsigned char>& vchPubKey, const CScript& scriptCode, SigVersion sigversion, std::vector<std::vector<unsigned char>> stack) const override
     {
         return true;
     }
@@ -410,6 +413,9 @@ const BaseSignatureChecker& DummySignatureCreator::Checker() const
 
 bool DummySignatureCreator::CreateSig(std::vector<unsigned char>& vchSig, const CKeyID& keyid, const CScript& scriptCode, SigVersion sigversion) const
 {
+    // TODO: Support witnessv1 signature generation
+    assert(sigversion < SIGVERSION_WITNESS_V1);
+
     // Create a dummy signature that is a valid DER-encoding
     vchSig.assign(72, '\000');
     vchSig[0] = 0x30;

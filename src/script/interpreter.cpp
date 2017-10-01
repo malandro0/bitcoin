@@ -902,7 +902,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                         //serror is set
                         return false;
                     }
-                    bool fSuccess = checker.CheckSig(vchSig, vchPubKey, scriptCode, sigversion);
+                    bool fSuccess = checker.CheckSig(vchSig, vchPubKey, scriptCode, sigversion, stack);
 
                     if (!fSuccess && (flags & SCRIPT_VERIFY_NULLFAIL) && vchSig.size())
                         return set_error(serror, SCRIPT_ERR_SIG_NULLFAIL);
@@ -978,7 +978,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                         }
 
                         // Check signature
-                        bool fOk = checker.CheckSig(vchSig, vchPubKey, scriptCode, sigversion);
+                        bool fOk = checker.CheckSig(vchSig, vchPubKey, scriptCode, sigversion, stack);
 
                         if (fOk) {
                             isig++;
@@ -1266,7 +1266,7 @@ bool TransactionSignatureChecker::VerifySignature(const std::vector<unsigned cha
     return pubkey.Verify(sighash, vchSig);
 }
 
-bool TransactionSignatureChecker::CheckSig(const std::vector<unsigned char>& vchSigIn, const std::vector<unsigned char>& vchPubKey, const CScript& scriptCode, SigVersion sigversion) const
+bool TransactionSignatureChecker::CheckSig(const std::vector<unsigned char>& vchSigIn, const std::vector<unsigned char>& vchPubKey, const CScript& scriptCode, SigVersion sigversion, std::vector<valtype> stack) const
 {
     CPubKey pubkey(vchPubKey);
     if (!pubkey.IsValid())
@@ -1301,6 +1301,26 @@ bool TransactionSignatureChecker::CheckSig(const std::vector<unsigned char>& vch
         }
         catch (...) {
             return false;
+        }
+        if (!ss.empty()) {
+            uint64_t condition_script_flags;
+            uint64_t condition_script_sigversion;
+            CScript condition_script;
+            try {
+                ss >> VARINT(condition_script_flags);
+                ss >> VARINT(condition_script_sigversion);
+                ss >> condition_script;
+            }
+            catch (...) {
+                return false;
+            }
+            // FIXME: Need to unify and restrict condition script flags/sigversion so signatures can't escape the blockchain state
+            if (!EvalScript(stack, condition_script, condition_script_flags, *this, SigVersion(condition_script_sigversion), NULL)) {
+                return false;
+            }
+            if (stack.size() != 1 || !CastToBool(stack.back())) {
+                return false;
+            }
         }
     } else {
         nHashType = vchSigIn.back();
