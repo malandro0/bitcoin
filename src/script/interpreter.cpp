@@ -1505,14 +1505,23 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, int witversion, 
             return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_WRONG_LENGTH);
         }
         sigversion = SIGVERSION_WITNESS_V0;
-    } else if (witversion == 1 && program.size() == 32) {
+    } else if (witversion == 1 && (program.size() == 20 || program.size() == 32)) {
         if (witness.stack.size() == 0) {
             return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_WITNESS_EMPTY);
         }
 
-        uint256 hashWitnessFinalElement;
-        CSHA256().Write(witness.stack.back().data(), witness.stack.back().size()).Finalize(hashWitnessFinalElement.begin());
-        if (memcmp(hashWitnessFinalElement.begin(), program.data(), 32)) {
+        std::vector<uint8_t> hashWitnessFinalElement(program.size());
+        switch (program.size()) {
+        case 20:
+            CHash160().Write(witness.stack.back().data(), witness.stack.back().size()).Finalize(hashWitnessFinalElement.data());
+            break;
+        case 32:
+            CSHA256().Write(witness.stack.back().data(), witness.stack.back().size()).Finalize(hashWitnessFinalElement.data());
+            break;
+        default:
+            assert(false);
+        }
+        if (memcmp(hashWitnessFinalElement.data(), program.data(), program.size())) {
             return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
         }
 
