@@ -343,30 +343,34 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
             //
             if (!script.GetOp(pc, opcode, vchPushValue))
                 return set_error(serror, SCRIPT_ERR_BAD_OPCODE);
-            if (vchPushValue.size() > MAX_SCRIPT_ELEMENT_SIZE)
-                return set_error(serror, SCRIPT_ERR_PUSH_SIZE);
 
-            // Note how OP_RESERVED does not count towards the opcode limit.
-            if (opcode > OP_16 && ++nOpCount > MAX_OPS_PER_SCRIPT)
-                return set_error(serror, SCRIPT_ERR_OP_COUNT);
+            if (sigversion < SIGVERSION_WITNESS_V1) {
+                if (vchPushValue.size() > MAX_SCRIPT_ELEMENT_SIZE) {
+                    return set_error(serror, SCRIPT_ERR_PUSH_SIZE);
+                }
 
-            if (sigversion < SIGVERSION_WITNESS_V1 &&
-               (opcode == OP_CAT ||
-                opcode == OP_SUBSTR ||
-                opcode == OP_LEFT ||
-                opcode == OP_RIGHT ||
-                opcode == OP_INVERT ||
-                opcode == OP_AND ||
-                opcode == OP_OR ||
-                opcode == OP_XOR ||
-                opcode == OP_2MUL ||
-                opcode == OP_2DIV ||
-                opcode == OP_MUL ||
-                opcode == OP_DIV ||
-                opcode == OP_MOD ||
-                opcode == OP_LSHIFT ||
-                opcode == OP_RSHIFT)) {
-                return set_error(serror, SCRIPT_ERR_DISABLED_OPCODE); // Disabled opcodes.
+                // Note how OP_RESERVED does not count towards the opcode limit.
+                if (opcode > OP_16 && ++nOpCount > MAX_OPS_PER_SCRIPT) {
+                    return set_error(serror, SCRIPT_ERR_OP_COUNT);
+                }
+
+                if (opcode == OP_CAT ||
+                    opcode == OP_SUBSTR ||
+                    opcode == OP_LEFT ||
+                    opcode == OP_RIGHT ||
+                    opcode == OP_INVERT ||
+                    opcode == OP_AND ||
+                    opcode == OP_OR ||
+                    opcode == OP_XOR ||
+                    opcode == OP_2MUL ||
+                    opcode == OP_2DIV ||
+                    opcode == OP_MUL ||
+                    opcode == OP_DIV ||
+                    opcode == OP_MOD ||
+                    opcode == OP_LSHIFT ||
+                    opcode == OP_RSHIFT) {
+                    return set_error(serror, SCRIPT_ERR_DISABLED_OPCODE); // Disabled opcodes.
+                }
             }
 
             if (fExec && 0 <= opcode && opcode <= OP_PUSHDATA4) {
@@ -1505,6 +1509,13 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, int witversion, 
             return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_WRONG_LENGTH);
         }
         sigversion = SIGVERSION_WITNESS_V0;
+
+        // Disallow stack item size > MAX_SCRIPT_ELEMENT_SIZE in witness stack
+        for (unsigned int i = 0; i < stack.size(); i++) {
+            if (stack.at(i).size() > MAX_SCRIPT_ELEMENT_SIZE) {
+                return set_error(serror, SCRIPT_ERR_PUSH_SIZE);
+            }
+        }
     } else if (witversion == 1 && (program.size() == 20 || program.size() == 32)) {
         if (witness.stack.size() == 0) {
             return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_WITNESS_EMPTY);
@@ -1547,12 +1558,6 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, int witversion, 
     } else {
         // Higher version witness scripts return true for future softfork compatibility
         return set_success(serror);
-    }
-
-    // Disallow stack item size > MAX_SCRIPT_ELEMENT_SIZE in witness stack
-    for (unsigned int i = 0; i < stack.size(); i++) {
-        if (stack.at(i).size() > MAX_SCRIPT_ELEMENT_SIZE)
-            return set_error(serror, SCRIPT_ERR_PUSH_SIZE);
     }
 
     if (!EvalScript(stack, scriptPubKey, flags, checker, sigversion, serror)) {

@@ -647,7 +647,7 @@ public:
     bool IsPushOnly(const_iterator pc) const;
     bool IsPushOnly() const;
 
-    /** Check if the script contains valid OP_CODES */
+    /** Check if the script contains valid opcodes; note that this is not correct for witness-v1 scripts, which may contain longer pushdata operations */
     bool HasValidOps() const;
 
     /**
