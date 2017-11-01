@@ -274,6 +274,7 @@ bool VerifyWallets()
 
 bool OpenWallets()
 {
+    LOCK(cs_main);
     if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
         LogPrintf("Wallet disabled!\n");
         return true;

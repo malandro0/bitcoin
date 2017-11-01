@@ -1413,6 +1413,7 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
         nStart = GetTimeMillis();
         do {
             try {
+                LOCK(cs_main);
                 UnloadBlockIndex();
                 pcoinsTip.reset();
                 pcoinsdbview.reset();
@@ -1515,16 +1516,13 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
                             MIN_BLOCKS_TO_KEEP);
                     }
 
-                    {
-                        LOCK(cs_main);
-                        CBlockIndex* tip = chainActive.Tip();
-                        RPCNotifyBlockChange(true, tip);
-                        if (tip && tip->nTime > GetAdjustedTime() + 2 * 60 * 60) {
-                            strLoadError = _("The block database contains a block which appears to be from the future. "
-                                    "This may be due to your computer's date and time being set incorrectly. "
-                                    "Only rebuild the block database if you are sure that your computer's date and time are correct");
-                            break;
-                        }
+                    CBlockIndex* tip = chainActive.Tip();
+                    RPCNotifyBlockChange(true, tip);
+                    if (tip && tip->nTime > GetAdjustedTime() + 2 * 60 * 60) {
+                        strLoadError = _("The block database contains a block which appears to be from the future. "
+                                         "This may be due to your computer's date and time being set incorrectly. "
+                                         "Only rebuild the block database if you are sure that your computer's date and time are correct");
+                        break;
                     }
 
                     if (!CVerifyDB().VerifyDB(chainparams, pcoinsdbview.get(), gArgs.GetArg("-checklevel", DEFAULT_CHECKLEVEL),
@@ -1618,10 +1616,13 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     // Either install a handler to notify us when genesis activates, or set fHaveGenesis directly.
     // No locking, as this happens before any background thread is started.
-    if (chainActive.Tip() == nullptr) {
-        uiInterface.NotifyBlockTip.connect(BlockNotifyGenesisWait);
-    } else {
-        fHaveGenesis = true;
+    {
+        LOCK(cs_main);
+        if (chainActive.Tip() == nullptr) {
+            uiInterface.NotifyBlockTip.connect(BlockNotifyGenesisWait);
+        } else {
+            fHaveGenesis = true;
+        }
     }
 
     if (gArgs.IsArgSet("-blocknotify"))

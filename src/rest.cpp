@@ -486,6 +486,8 @@ static bool rest_getutxos(HTTPRequest* req, const std::string& strURIPart)
     std::string bitmapStringRepresentation;
     std::vector<bool> hits;
     bitmap.resize((vOutPoints.size() + 7) / 8);
+    int chainActiveHeight;
+    uint256 chainActiveTipBlockHash;
     {
         LOCK2(cs_main, mempool.cs);
 
@@ -510,6 +512,9 @@ static bool rest_getutxos(HTTPRequest* req, const std::string& strURIPart)
             bitmapStringRepresentation.append(hit ? "1" : "0"); // form a binary string representation (human-readable for json output)
             bitmap[i / 8] |= ((uint8_t)hit) << (i % 8);
         }
+
+        chainActiveHeight = chainActive.Height();
+        chainActiveTipBlockHash = chainActive.Tip()->GetBlockHash();
     }
 
     switch (rf) {
@@ -517,7 +522,7 @@ static bool rest_getutxos(HTTPRequest* req, const std::string& strURIPart)
         // serialize data
         // use exact same output as mentioned in Bip64
         CDataStream ssGetUTXOResponse(SER_NETWORK, PROTOCOL_VERSION);
-        ssGetUTXOResponse << chainActive.Height() << chainActive.Tip()->GetBlockHash() << bitmap << outs;
+        ssGetUTXOResponse << chainActiveHeight << chainActiveTipBlockHash << bitmap << outs;
         std::string ssGetUTXOResponseString = ssGetUTXOResponse.str();
 
         req->WriteHeader("Content-Type", "application/octet-stream");
@@ -527,7 +532,7 @@ static bool rest_getutxos(HTTPRequest* req, const std::string& strURIPart)
 
     case RF_HEX: {
         CDataStream ssGetUTXOResponse(SER_NETWORK, PROTOCOL_VERSION);
-        ssGetUTXOResponse << chainActive.Height() << chainActive.Tip()->GetBlockHash() << bitmap << outs;
+        ssGetUTXOResponse << chainActiveHeight << chainActiveTipBlockHash << bitmap << outs;
         std::string strHex = HexStr(ssGetUTXOResponse.begin(), ssGetUTXOResponse.end()) + "\n";
 
         req->WriteHeader("Content-Type", "text/plain");
