@@ -157,6 +157,23 @@ CPubKey CWallet::GenerateNewKey(CWalletDB &walletdb, bool internal)
     return pubkey;
 }
 
+std::string ChildKeyIndexToString(const unsigned int child_index)
+{
+    if (0 == (child_index & BIP32_HARDENED_KEY_LIMIT)) {
+        // Unhardened key
+        return std::to_string(child_index);
+    } else {
+        unsigned int base_child_index = child_index & ~BIP32_HARDENED_KEY_LIMIT;
+        return std::to_string(base_child_index) + "'";
+    }
+}
+
+void DeriveAndBuildKeypath(const CExtKey& parent, CExtKey& out, const unsigned int child_index, std::string& inout_keypath)
+{
+    parent.Derive(out, child_index);
+    inout_keypath += "/" + ChildKeyIndexToString(child_index);
+}
+
 void CWallet::DeriveNewChildKey(CWalletDB &walletdb, CKeyMetadata& metadata, CKey& secret, bool internal)
 {
     // for now we use a fixed keypath scheme of m/0'/0'/k
@@ -171,31 +188,27 @@ void CWallet::DeriveNewChildKey(CWalletDB &walletdb, CKeyMetadata& metadata, CKe
         throw std::runtime_error(std::string(__func__) + ": Master key not found");
 
     masterKey.SetMaster(key.begin(), key.size());
+    std::string new_keypath = "m";
 
     // derive m/0'
     // use hardened derivation (child keys >= 0x80000000 are hardened after bip32)
-    masterKey.Derive(accountKey, BIP32_HARDENED_KEY_LIMIT);
+    DeriveAndBuildKeypath(masterKey, accountKey, BIP32_HARDENED_KEY_LIMIT, new_keypath);
 
     // derive m/0'/0' (external chain) OR m/0'/1' (internal chain)
     assert(internal ? CanSupportFeature(FEATURE_HD_SPLIT) : true);
-    accountKey.Derive(chainChildKey, BIP32_HARDENED_KEY_LIMIT+(internal ? 1 : 0));
+    DeriveAndBuildKeypath(accountKey, chainChildKey, BIP32_HARDENED_KEY_LIMIT+(internal ? 1 : 0), new_keypath);
 
     // derive child key at next index, skip keys already known to the wallet
+    uint32_t & chain_counter = (internal ? hdChain.nInternalChainCounter : hdChain.nExternalChainCounter);
     do {
         // always derive hardened keys
         // childIndex | BIP32_HARDENED_KEY_LIMIT = derive childIndex in hardened child-index-range
         // example: 1 | BIP32_HARDENED_KEY_LIMIT == 0x80000001 == 2147483649
-        if (internal) {
-            chainChildKey.Derive(childKey, hdChain.nInternalChainCounter | BIP32_HARDENED_KEY_LIMIT);
-            metadata.hdKeypath = "m/0'/1'/" + std::to_string(hdChain.nInternalChainCounter) + "'";
-            hdChain.nInternalChainCounter++;
-        }
-        else {
-            chainChildKey.Derive(childKey, hdChain.nExternalChainCounter | BIP32_HARDENED_KEY_LIMIT);
-            metadata.hdKeypath = "m/0'/0'/" + std::to_string(hdChain.nExternalChainCounter) + "'";
-            hdChain.nExternalChainCounter++;
-        }
+        chainChildKey.Derive(childKey, chain_counter | BIP32_HARDENED_KEY_LIMIT);
+        ++chain_counter;
     } while (HaveKey(childKey.key.GetPubKey().GetID()));
+    new_keypath += "/" + ChildKeyIndexToString(chain_counter | BIP32_HARDENED_KEY_LIMIT);
+    metadata.hdKeypath = new_keypath;
     secret = childKey.key;
     metadata.hdMasterKeyID = hdChain.masterKeyID;
     // update the chain model in the database
