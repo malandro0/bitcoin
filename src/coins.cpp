@@ -9,6 +9,8 @@
 
 #include <assert.h>
 
+#include <map>
+#include <set>
 #include <stdexcept>
 
 /**
@@ -49,7 +51,7 @@ uint256 CCoinsView::GetBestBlock() const { return uint256(); }
 bool CCoinsView::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock) { return false; }
 CCoinsViewCursor *CCoinsView::Cursor() const { return 0; }
 
-void CCoinsView::FindScriptPubKey(CCoinsViewCursor& cursor, const std::set<CScript>& setscriptNeedles, std::map<uint256, CCoins>& outResults) {
+void CCoinsView::FindScriptPubKey(CCoinsViewCursor& cursor, const std::set<CScript>& needles, std::map<uint256, CCoins>& out_results) {
     for ( ; cursor.Valid(); cursor.Next()) {
         uint256 hash;
         CCoins coins;
@@ -60,7 +62,7 @@ void CCoinsView::FindScriptPubKey(CCoinsViewCursor& cursor, const std::set<CScri
         }
         bool fFoundAny = false;
         for (CTxOut& txo : coins.vout) {
-            if (setscriptNeedles.find(txo.scriptPubKey) == setscriptNeedles.end()) {
+            if (!needles.count(txo.scriptPubKey)) {
                 txo.SetNull();
             } else {
                 fFoundAny = true;
@@ -70,13 +72,13 @@ void CCoinsView::FindScriptPubKey(CCoinsViewCursor& cursor, const std::set<CScri
             continue;
         }
         coins.Cleanup();
-        outResults.insert(std::pair<uint256, CCoins>(hash, coins));
+        out_results.emplace(hash, coins);
     }
 }
 
-void CCoinsView::FindScriptPubKey(const std::set<CScript>& setscriptNeedles, std::map<uint256, CCoins>& outResults) {
+void CCoinsView::FindScriptPubKey(const std::set<CScript>& needles, std::map<uint256, CCoins>& out_results) {
     std::unique_ptr<CCoinsViewCursor> pcursor(Cursor());
-    FindScriptPubKey(*pcursor, setscriptNeedles, outResults);
+    FindScriptPubKey(*pcursor, needles, out_results);
 }
 
 

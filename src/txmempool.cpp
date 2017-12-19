@@ -858,13 +858,13 @@ TxMempoolInfo CTxMemPool::info(const uint256& hash) const
     return TxMempoolInfo{i->GetSharedTx(), i->GetTime(), CFeeRate(i->GetFee(), i->GetTxSize())};
 }
 
-void CTxMemPool::FindScriptPubKey(const std::set<CScript>& setscriptNeedles, std::map<uint256, CCoins>& outResults) {
+void CTxMemPool::FindScriptPubKey(const std::set<CScript>& needles, std::map<uint256, CCoins>& out_results) {
     LOCK(cs);
     for (const CTxMemPoolEntry& entry : mapTx) {
         const CTransaction& tx = entry.GetTx();
         bool fFoundAny = false;
         for (const CTxOut& txo : tx.vout) {
-            if (setscriptNeedles.find(txo.scriptPubKey) != setscriptNeedles.end()) {
+            if (needles.count(txo.scriptPubKey)) {
                 fFoundAny = true;
                 break;
             }
@@ -876,12 +876,12 @@ void CTxMemPool::FindScriptPubKey(const std::set<CScript>& setscriptNeedles, std
         const uint256& hash = tx.GetHash();
         CCoins coins(tx, MEMPOOL_HEIGHT);
         for (CTxOut& txo : coins.vout) {
-            if (setscriptNeedles.find(txo.scriptPubKey) == setscriptNeedles.end()) {
+            if (!needles.count(txo.scriptPubKey)) {
                 txo.SetNull();
             }
         }
         coins.Cleanup();
-        outResults.insert(std::pair<uint256, CCoins>(hash, coins));
+        out_results.emplace(hash, coins);
     }
 }
 
