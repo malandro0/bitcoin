@@ -830,12 +830,15 @@ bool CWallet::GetAccountDestination(CTxDestination &dest, std::string strAccount
     CAccount account;
     walletdb.ReadAccount(strAccount, account);
 
+    OutputType address_type = g_address_type;
+    if (address_type == OUTPUT_TYPE_DEFAULT) address_type = FinalDefaultOutputType();
+
     if (!bForceNew) {
         if (!account.vchPubKey.IsValid())
             bForceNew = true;
         else {
             // Check if the current key has been used (TODO: check other addresses with the same key)
-            CScript scriptPubKey = GetScriptForDestination(GetDestinationForKey(account.vchPubKey, g_address_type));
+            CScript scriptPubKey = GetScriptForDestination(GetDestinationForKey(account.vchPubKey, address_type));
             for (std::map<uint256, CWalletTx>::iterator it = mapWallet.begin();
                  it != mapWallet.end() && account.vchPubKey.IsValid();
                  ++it)
@@ -852,12 +855,12 @@ bool CWallet::GetAccountDestination(CTxDestination &dest, std::string strAccount
         if (!GetKeyFromPool(account.vchPubKey, false))
             return false;
 
-        LearnRelatedScripts(account.vchPubKey, g_address_type);
-        dest = GetDestinationForKey(account.vchPubKey, g_address_type);
+        LearnRelatedScripts(account.vchPubKey, address_type);
+        dest = GetDestinationForKey(account.vchPubKey, address_type);
         SetAddressBook(dest, strAccount, "receive");
         walletdb.WriteAccount(strAccount, account);
     } else {
-        dest = GetDestinationForKey(account.vchPubKey, g_address_type);
+        dest = GetDestinationForKey(account.vchPubKey, address_type);
     }
 
     return true;
@@ -2739,8 +2742,10 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CWalletT
                     return false;
                 }
 
-                LearnRelatedScripts(vchPubKey, g_change_type);
-                scriptChange = GetScriptForDestination(GetDestinationForKey(vchPubKey, g_change_type));
+                OutputType change_address_type = g_change_type;
+                if (change_address_type == OUTPUT_TYPE_DEFAULT) change_address_type = FinalDefaultOutputType();
+                LearnRelatedScripts(vchPubKey, change_address_type);
+                scriptChange = GetScriptForDestination(GetDestinationForKey(vchPubKey, change_address_type));
             }
             CTxOut change_prototype_txout(0, scriptChange);
             size_t change_prototype_size = GetSerializeSize(change_prototype_txout, SER_DISK, 0);
@@ -4138,6 +4143,7 @@ bool CWalletTx::AcceptToMemoryPool(const CAmount& nAbsurdFee, CValidationState& 
 static const std::string OUTPUT_TYPE_STRING_LEGACY = "legacy";
 static const std::string OUTPUT_TYPE_STRING_P2SH_SEGWIT = "p2sh-segwit";
 static const std::string OUTPUT_TYPE_STRING_BECH32 = "bech32";
+static const std::string OUTPUT_TYPE_STRING_DEFAULT = "default";
 
 OutputType ParseOutputType(const std::string& type, OutputType default_type)
 {
@@ -4149,6 +4155,8 @@ OutputType ParseOutputType(const std::string& type, OutputType default_type)
         return OUTPUT_TYPE_P2SH_SEGWIT;
     } else if (type == OUTPUT_TYPE_STRING_BECH32) {
         return OUTPUT_TYPE_BECH32;
+    } else if (type == OUTPUT_TYPE_STRING_DEFAULT) {
+        return OUTPUT_TYPE_DEFAULT;
     } else {
         return OUTPUT_TYPE_NONE;
     }
@@ -4160,12 +4168,19 @@ const std::string& FormatOutputType(OutputType type)
     case OUTPUT_TYPE_LEGACY: return OUTPUT_TYPE_STRING_LEGACY;
     case OUTPUT_TYPE_P2SH_SEGWIT: return OUTPUT_TYPE_STRING_P2SH_SEGWIT;
     case OUTPUT_TYPE_BECH32: return OUTPUT_TYPE_STRING_BECH32;
+    case OUTPUT_TYPE_DEFAULT: return OUTPUT_TYPE_STRING_DEFAULT;
     default: assert(false);
     }
 }
 
+OutputType CWallet::FinalDefaultOutputType() const
+{
+    return OUTPUT_TYPE_DEFAULT_SEGWIT;
+}
+
 void CWallet::LearnRelatedScripts(const CPubKey& key, OutputType type)
 {
+    if (type == OUTPUT_TYPE_DEFAULT) type = FinalDefaultOutputType();
     if (key.IsCompressed() && (type == OUTPUT_TYPE_P2SH_SEGWIT || type == OUTPUT_TYPE_BECH32)) {
         CTxDestination witdest = WitnessV0KeyHash(key.GetID());
         CScript witprog = GetScriptForDestination(witdest);
@@ -4214,6 +4229,7 @@ std::vector<CTxDestination> GetAllDestinationsForKey(const CPubKey& key)
 
 CTxDestination CWallet::AddAndGetDestinationForScript(const CScript& script, OutputType type)
 {
+    if (type == OUTPUT_TYPE_DEFAULT) type = FinalDefaultOutputType();
     // Note that scripts over 520 bytes are not yet supported.
     switch (type) {
     case OUTPUT_TYPE_LEGACY:

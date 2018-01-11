@@ -166,6 +166,7 @@ UniValue getnewaddress(const JSONRPCRequest& request)
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, strprintf("Unknown address type '%s'", request.params[1].get_str()));
         }
     }
+    if (output_type == OUTPUT_TYPE_DEFAULT) output_type = pwallet->FinalDefaultOutputType();
 
     if (!pwallet->IsLocked()) {
         pwallet->TopUpKeyPool();
@@ -263,6 +264,7 @@ UniValue getrawchangeaddress(const JSONRPCRequest& request)
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, strprintf("Unknown address type '%s'", request.params[0].get_str()));
         }
     }
+    if (output_type == OUTPUT_TYPE_DEFAULT) output_type = pwallet->FinalDefaultOutputType();
 
     CReserveKey reservekey(pwallet);
     CPubKey vchPubKey;

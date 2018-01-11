@@ -106,7 +106,12 @@ enum OutputType
     OUTPUT_TYPE_P2SH_SEGWIT,
     OUTPUT_TYPE_BECH32,
 
-    OUTPUT_TYPE_DEFAULT = OUTPUT_TYPE_P2SH_SEGWIT
+    // The default output type is:
+    // 1. legacy if segwitwallet is disabled.
+    // 2. p2sh-segwit otherwise.
+    OUTPUT_TYPE_DEFAULT,
+
+    OUTPUT_TYPE_DEFAULT_SEGWIT = OUTPUT_TYPE_P2SH_SEGWIT
 };
 
 extern OutputType g_address_type;
@@ -1142,6 +1147,9 @@ public:
      * deadlock
      */
     void BlockUntilSyncedToCurrentChain();
+
+    // The final value when OUTPUT_TYPE_DEFAULT is encountered
+    OutputType FinalDefaultOutputType() const;
 
     /**
      * Explicitly make the wallet learn the related scripts for outputs to the
