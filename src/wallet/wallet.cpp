@@ -2653,6 +2653,7 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CWalletT
     CAmount nValue = 0;
     int nChangePosRequest = nChangePosInOut;
     unsigned int nSubtractFeeFromAmount = 0;
+    bool any_bech32_destination = false;
     for (const auto& recipient : vecSend)
     {
         if (nValue < 0 || recipient.nAmount < 0)
@@ -2664,6 +2665,13 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CWalletT
 
         if (recipient.fSubtractFeeFromAmount)
             nSubtractFeeFromAmount++;
+
+        // Check if the destination contains a witness program, in which case the addresstype for this destination is bech32
+        int witnessversion = 0;
+        std::vector<unsigned char> witnessprogram;
+        if (recipient.scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram)) {
+            any_bech32_destination = true;
+        }
     }
     if (vecSend.empty())
     {
@@ -2743,7 +2751,12 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CWalletT
                 }
 
                 OutputType change_address_type = g_change_type;
-                if (change_address_type == OUTPUT_TYPE_DEFAULT) change_address_type = FinalDefaultOutputType();
+                if (change_address_type == OUTPUT_TYPE_DEFAULT) {
+                    change_address_type = FinalDefaultOutputType();
+                    if (change_address_type == OUTPUT_TYPE_P2SH_SEGWIT && any_bech32_destination) {
+                        change_address_type = OUTPUT_TYPE_BECH32;
+                    }
+                }
                 LearnRelatedScripts(vchPubKey, change_address_type);
                 scriptChange = GetScriptForDestination(GetDestinationForKey(vchPubKey, change_address_type));
             }

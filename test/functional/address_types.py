@@ -24,7 +24,13 @@ Iterate over each node for single key addresses, and then over each node for
 multisig addresses. In a second iteration, the same is done, but with explicit address_type
 parameters passed to getnewaddress and getrawchangeaddress. Node0 and node3 send to p2sh,
 node 1 sends to bech32, and node2 sends to legacy. As every node sends coins after receiving,
-this also verifies that spending coins sent to all these address types works."""
+this also verifies that spending coins sent to all these address types works.
+
+Test that node1 uses a bech32 addresses for change if any destination address is
+bech32.
+
+Test that node0 always uses a legacy change address.
+"""
 
 from decimal import Decimal
 import itertools
@@ -103,6 +109,28 @@ class AddressTypeTest(BitcoinTestFramework):
         else:
             # Unknown type
             assert(False)
+
+    def test_change_address_type(self, node_sender, destinations, expected_type):
+        txid = self.nodes[node_sender].sendmany("",  dict.fromkeys(destinations, 0.001))
+        raw_tx = self.nodes[node_sender].getrawtransaction(txid)
+        tx = self.nodes[node_sender].decoderawtransaction(raw_tx)
+
+        # Make sure the transaction has change:
+        assert_equal(len(tx["vout"]), len(destinations) + 1)
+
+        output_addresses = list(map(lambda vout: vout['scriptPubKey']['addresses'][0], tx["vout"]))
+
+        # Make sure the destinations are included, and remove it:
+        for destination in destinations:
+            output_addresses.pop(output_addresses.index(destination))
+
+        assert_equal(len(output_addresses), 1)
+
+        change_address = output_addresses[0]
+
+        self.log.debug("Check if change address " +  change_address + " is " + expected_type)
+
+        self.test_address(node_sender, change_address, False, expected_type)
 
     def run_test(self):
         # Mine 101 blocks on node4 to bring nodes out of IBD and make sure that
@@ -194,6 +222,31 @@ class AddressTypeTest(BitcoinTestFramework):
             for n, to_node in enumerate(range(from_node + 1, from_node + 4)):
                 to_node %= 4
                 assert_equal(new_balances[to_node], old_balances[to_node] + to_send * 10 * (2 + n))
+
+        # Get one p2sh/segwit address from node2 and two bech32 addresses from node3:
+        to_address_p2sh = self.nodes[2].getnewaddress()
+        to_address_bech32_1 = self.nodes[3].getnewaddress()
+        to_address_bech32_2 = self.nodes[3].getnewaddress()
+
+        self.log.debug("Nodes with change_type=bech32 always use a bech32 change address:")
+        self.test_change_address_type(2, [to_address_bech32_1], 'bech32')
+        self.test_change_address_type(2, [to_address_p2sh], 'bech32')
+
+        self.log.debug("Nodes with addresstype=bech32 always use a bech32 change address:")
+        self.test_change_address_type(3, [to_address_bech32_1], 'bech32')
+        self.test_change_address_type(3, [to_address_p2sh], 'bech32')
+
+        self.log.debug("Nodes with addresstype=p2sh-segwit only use a bech32 change address " +
+                       "if any destination address is bech32:")
+        self.test_change_address_type(1, [to_address_p2sh], 'p2sh-segwit')
+        self.test_change_address_type(1, [to_address_bech32_1], 'bech32')
+
+        self.test_change_address_type(1, [to_address_p2sh, to_address_bech32_1], 'bech32')
+        self.test_change_address_type(1, [to_address_bech32_1, to_address_bech32_2], 'bech32')
+
+        self.log.debug("Nodes with changetype=legacy never use a bech32 change address")
+        self.test_change_address_type(0, [to_address_bech32_1], 'legacy')
+
 
 if __name__ == '__main__':
     AddressTypeTest().main()
