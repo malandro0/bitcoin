@@ -808,6 +808,7 @@ public:
 
     void SetNull()
     {
+        LOCK(cs_wallet);
         nWalletVersion = FEATURE_BASE;
         nWalletMaxVersion = FEATURE_BASE;
         nMasterKeyMaxID = 0;
