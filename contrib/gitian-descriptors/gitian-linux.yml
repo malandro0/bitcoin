@@ -15,6 +15,12 @@ packages:
 - "g++-7-arm-linux-gnueabihf"
 - "gcc-7-arm-linux-gnueabihf"
 - "binutils-arm-linux-gnueabihf"
+- "g++-7-powerpc64-linux-gnu"
+- "gcc-7-powerpc64-linux-gnu"
+- "binutils-powerpc64-linux-gnu"
+- "g++-7-powerpc64le-linux-gnu"
+- "gcc-7-powerpc64le-linux-gnu"
+- "binutils-powerpc64le-linux-gnu"
 - "g++-7-multilib"
 - "gcc-7-multilib"
 - "binutils-gold"
@@ -34,7 +40,7 @@ files: []
 script: |
 
   WRAP_DIR=$HOME/wrapped
-  HOSTS="i686-pc-linux-gnu x86_64-linux-gnu arm-linux-gnueabihf aarch64-linux-gnu"
+  HOSTS="i686-pc-linux-gnu x86_64-linux-gnu arm-linux-gnueabihf aarch64-linux-gnu powerpc64-linux-gnu powerpc64le-linux-gnu"
   CONFIGFLAGS="--enable-glibc-back-compat --enable-reduce-exports --disable-bench --disable-gui-tests"
   FAKETIME_HOST_PROGS=""
   FAKETIME_PROGS="date ar ranlib nm"
@@ -65,6 +71,16 @@ script: |
     chmod +x ${WRAP_DIR}/${prog}
   done
   }
+
+  for ppc_arch in powerpc64-linux-gnu powerpc64le-linux-gnu; do
+    for prog in g++ gcc; do
+      cat <<EOF >"${WRAP_DIR}/${ppc_arch}-${prog}"
+  #!/usr/bin/env bash
+  exec "${ppc_arch}-${prog}-7" -mcpu=power8 -mtune=power9 "\$@"
+  EOF
+      chmod +x "${WRAP_DIR}/${ppc_arch}-${prog}"
+    done
+  done
 
   function create_per-host_faketime_wrappers {
   for i in $HOSTS; do
@@ -170,6 +186,8 @@ script: |
     case $i in
        aarch64-*) make ${MAKEOPTS} -C src check-symbols BITCOIN_SYMBOL_CHECK_OPTIONS='--allow-library ld-linux-aarch64.so.1 --max-version GLIBC_2.17' ;;
        arm-*) make ${MAKEOPTS} -C src check-symbols BITCOIN_SYMBOL_CHECK_OPTIONS='--allow-library ld-linux-armhf.so.3' ;;
+       powerpc64-*) make ${MAKEOPTS} -C src check-symbols BITCOIN_SYMBOL_CHECK_OPTIONS='--allow-library ld64.so.1' ;;
+       powerpc64le-*) make ${MAKEOPTS} -C src check-symbols BITCOIN_SYMBOL_CHECK_OPTIONS='--allow-library ld64.so.2 --max-version GLIBC_2.17' ;;
        *) make ${MAKEOPTS} -C src check-symbols ;;
     esac
 
