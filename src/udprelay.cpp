@@ -907,7 +907,7 @@ bool HandleBlockTxMessage(UDPMessage& msg, size_t length, const CService& node, 
 
     if (chunks_avail_it == state.chunks_avail.end()) {
         if ((msg.header.msg_type & UDP_MSG_TYPE_TYPE_MASK) == MSG_TYPE_BLOCK_HEADER) {
-            if (state.chunks_avail.size() > 1 && !state.connection.fTrusted) {
+            if (state.chunks_avail.size() > 1 && !(state.connection.fTrusted || IsNodeLocalReceive(node))) {
                 // Non-trusted nodes can only be forwarding up to 2 blocks at a time
                 assert(state.chunks_avail.size() == 2);
                 auto first_partial_block_it  = mapPartialBlocks.find(std::make_pair(state.chunks_avail. begin()->first, node));
