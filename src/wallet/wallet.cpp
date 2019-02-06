@@ -2889,6 +2889,11 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CTransac
                     nChangePosInOut = -1;
                 }
 
+                // Extra weight
+                if (m_extra_weight) {
+                    txNew.vout.emplace_back(/*amount*/ 0, FlattenExtraWeight(m_extra_weight));
+                }
+
                 // Dummy fill vin for maximum size estimation
                 //
                 for (const auto& coin : setCoins) {
@@ -4246,6 +4251,12 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
     walletInstance->m_confirm_target = gArgs.GetArg("-txconfirmtarget", DEFAULT_TX_CONFIRM_TARGET);
     walletInstance->m_spend_zero_conf_change = gArgs.GetBoolArg("-spendzeroconfchange", DEFAULT_SPEND_ZEROCONF_CHANGE);
     walletInstance->m_signal_rbf = gArgs.GetBoolArg("-walletrbf", DEFAULT_WALLET_RBF);
+
+    walletInstance->m_extra_weight = gArgs.GetArg("-walletextraweight", DEFAULT_EXTRAWEIGHT);
+    if (EncodeExtraWeight(walletInstance->m_extra_weight) == -1) {
+        InitError(_("Invalid value for -walletextraweight"));
+        return nullptr;
+    }
 
     walletInstance->WalletLogPrintf("Wallet completed loading in %15dms\n", GetTimeMillis() - nStart);
 
