@@ -114,7 +114,13 @@ bool IsStandardTx(const CTransaction& tx, std::string& reason)
 
     unsigned int nDataOut = 0;
     txnouttype whichType;
-    for (const CTxOut& txout : tx.vout) {
+    for (size_t i = 0; i <= tx.vout.size(); ++i) {
+        const CTxOut& txout = tx.vout[i];
+
+        if (i == tx.vout.size() - 1 && !txout.nValue && txout.scriptPubKey.IsExtraWeight()) {
+            continue;
+        }
+
         if (!::IsStandard(txout.scriptPubKey, whichType)) {
             reason = "scriptpubkey";
             return false;
