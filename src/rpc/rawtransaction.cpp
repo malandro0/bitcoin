@@ -357,6 +357,7 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
     }
 
     bool rbfOptIn = rbf.isTrue();
+    int64_t extra_weight = 0;
 
     for (unsigned int idx = 0; idx < inputs.size(); idx++) {
         const UniValue& input = inputs[idx];
@@ -418,6 +419,8 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
 
             CTxOut out(0, CScript() << OP_RETURN << data);
             rawTx.vout.push_back(out);
+        } else if (name_ == "extraweight") {
+            extra_weight = outputs["extraweight"].get_int64();
         } else {
             CTxDestination destination = DecodeDestination(name_);
             if (!IsValidDestination(destination)) {
@@ -434,6 +437,14 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
             CTxOut out(nAmount, scriptPubKey);
             rawTx.vout.push_back(out);
         }
+    }
+
+    if (extra_weight) {
+        if (EncodeExtraWeight(extra_weight) == -1) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid extraweight value");
+        }
+        CTxOut out(0, FlattenExtraWeight(extra_weight));
+        rawTx.vout.push_back(out);
     }
 
     if (!rbf.isNull() && rawTx.vin.size() > 0 && rbfOptIn != SignalsOptInRBF(rawTx)) {
