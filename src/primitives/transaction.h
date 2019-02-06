@@ -366,11 +366,11 @@ public:
     // inputs must be known to compute value in.
 
     /**
-     * Get the total transaction size in bytes, including witness data.
-     * "Total Size" defined in BIP141 and BIP144.
+     * Get the total transaction size in bytes, including witness data, and excluding extra weight.
+     * Do not use in consensus-critical code!
      * @return Total transaction size in bytes
      */
-    unsigned int GetTotalSize() const;
+    unsigned int GetActualSize() const;
 
     bool IsCoinBase() const
     {

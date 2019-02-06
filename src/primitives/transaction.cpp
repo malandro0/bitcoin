@@ -91,9 +91,9 @@ CAmount CTransaction::GetValueOut() const
     return nValueOut;
 }
 
-unsigned int CTransaction::GetTotalSize() const
+unsigned int CTransaction::GetActualSize() const
 {
-    return ::GetSerializeSize(*this, SER_NETWORK, PROTOCOL_VERSION);
+    return ::GetSerializeSize(*this, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_EXTRAWEIGHT);
 }
 
 std::string CTransaction::ToString() const
