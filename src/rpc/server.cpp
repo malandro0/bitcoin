@@ -555,6 +555,9 @@ int RPCSerializationFlags()
     int flag = 0;
     if (gArgs.GetArg("-rpcserialversion", DEFAULT_RPC_SERIALIZE_VERSION) == 0)
         flag |= SERIALIZE_TRANSACTION_NO_WITNESS;
+    if (gArgs.GetArg("-rpcserialversion", DEFAULT_RPC_SERIALIZE_VERSION) >= 2) {
+        flag |= SERIALIZE_TRANSACTION_EXTRAWEIGHT;
+    }
     return flag;
 }
 
