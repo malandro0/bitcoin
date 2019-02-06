@@ -146,6 +146,30 @@ const char* GetOpName(opcodetype opcode)
     }
 }
 
+int EncodeExtraWeight(uint32_t weight)
+{
+    // FIXME: Replace this with a better algorithm (NOTE: must only encode powers of 4)
+    if (weight % 4 || !weight) return -1;
+    weight /= 4;
+    unsigned big = 0;
+    for ( ; big < 0xf && (weight & 1) == 0; weight >>= 1) {
+        ++big;
+    }
+    if (weight > 0x10) return -1;
+    --weight;
+    return weight | (big << 4);
+}
+
+CScript FlattenExtraWeight(uint32_t weight)
+{
+    CScript s;
+    s << OP_RETURN;
+    for (uint32_t i = 4; i < weight; i += 4) {
+        s << OP_0;
+    }
+    return s;
+}
+
 unsigned int CScript::GetSigOpCount(bool fAccurate) const
 {
     unsigned int n = 0;
@@ -249,6 +273,25 @@ bool CScript::IsPushOnly(const_iterator pc) const
 bool CScript::IsPushOnly() const
 {
     return this->IsPushOnly(begin());
+}
+
+bool CScript::IsExtraWeight(uint32_t* out_weight) const
+{
+    if (size() < 2 || *begin() != OP_RETURN) {
+        return false;
+    }
+
+    const uint32_t weight = 4 * (/*script length*/ 1 + size());
+    if (EncodeExtraWeight(weight) == -1) {
+        return false;
+    }
+
+    for (auto it = begin() + 1; it != end(); ++it) {
+        if (*it != OP_0) return false;
+    }
+
+    if (out_weight) *out_weight = weight;
+    return true;
 }
 
 std::string CScriptWitness::ToString() const

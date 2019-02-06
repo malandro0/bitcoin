@@ -189,6 +189,14 @@ static const unsigned int MAX_OPCODE = OP_NOP10;
 
 const char* GetOpName(opcodetype opcode);
 
+int EncodeExtraWeight(uint32_t weight);
+
+static inline uint32_t DecodeExtraWeight(uint8_t encoded_weight)
+{
+    // FIXME: Replace this with a better algorithm (NOTE: must only encode powers of 4)
+    return 4 * (1 << (encoded_weight >> 4)) * ((encoded_weight & 0xf) + 1);
+}
+
 class scriptnum_error : public std::runtime_error
 {
 public:
@@ -551,6 +559,12 @@ public:
         return (size() > 0 && *begin() == OP_RETURN) || (size() > MAX_SCRIPT_SIZE);
     }
 
+    /**
+     * Returns whether the script could be an unrolled "extra weight".
+     * Note that this is only actually extra weight, if it is the very last output, and has 0 value.
+     */
+    bool IsExtraWeight(uint32_t* out_weight = nullptr) const;
+
     void clear()
     {
         // The default prevector::clear() does not release memory
@@ -558,6 +572,8 @@ public:
         shrink_to_fit();
     }
 };
+
+CScript FlattenExtraWeight(uint32_t weight);
 
 struct CScriptWitness
 {

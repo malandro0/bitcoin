@@ -13,6 +13,7 @@
 #include <uint256.h>
 
 static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
+static const int SERIALIZE_TRANSACTION_EXTRAWEIGHT = 0x20000000;
 
 /** An outpoint - a combination of a transaction hash and an index n into its vout */
 class COutPoint
@@ -214,6 +215,17 @@ inline void UnserializeTransaction(TxType& tx, Stream& s) {
         /* We read a non-empty vin. Assume a normal vout follows. */
         s >> tx.vout;
     }
+
+    if (flags & 2) {
+        // The extra weight flag is present.
+        flags ^= 2;
+        uint8_t encoded;
+        s >> encoded;
+        const uint32_t extra_weight = DecodeExtraWeight(encoded);
+
+        tx.vout.emplace_back(/*value=*/0, FlattenExtraWeight(extra_weight));
+    }
+
     if ((flags & 1) && fAllowWitness) {
         /* The witness flag is present, and we support witnesses. */
         flags ^= 1;
@@ -228,9 +240,22 @@ inline void UnserializeTransaction(TxType& tx, Stream& s) {
     s >> tx.nLockTime;
 }
 
+template<typename TxType>
+inline uint32_t TransactionExtraWeight(const TxType& tx) {
+    if (tx.vout.empty()) return 0;
+
+    const CTxOut& last_output = tx.vout.back();
+    uint32_t extra_weight;
+    if (last_output.nValue == 0 && last_output.scriptPubKey.IsExtraWeight(&extra_weight)) {
+        return extra_weight;
+    }
+    return 0;
+}
+
 template<typename Stream, typename TxType>
 inline void SerializeTransaction(const TxType& tx, Stream& s) {
     const bool fAllowWitness = !(s.GetVersion() & SERIALIZE_TRANSACTION_NO_WITNESS);
+    const bool fAllowExtraWeight = (s.GetVersion() & SERIALIZE_TRANSACTION_EXTRAWEIGHT);
 
     s << tx.nVersion;
     unsigned char flags = 0;
@@ -241,6 +266,14 @@ inline void SerializeTransaction(const TxType& tx, Stream& s) {
             flags |= 1;
         }
     }
+    uint32_t extra_weight = 0;
+    if (fAllowExtraWeight) {
+        /* Check whether the transaction has extra weight. */
+        extra_weight = TransactionExtraWeight(tx);
+        if (extra_weight) {
+            flags |= 2;
+        }
+    }
     if (flags) {
         /* Use extended format in case witnesses are to be serialized. */
         std::vector<CTxIn> vinDummy;
@@ -248,7 +281,18 @@ inline void SerializeTransaction(const TxType& tx, Stream& s) {
         s << flags;
     }
     s << tx.vin;
-    s << tx.vout;
+    if (flags & 2) {
+        // Write all except the last output; modified from vector serialisation in serialize.h
+        WriteCompactSize(s, tx.vout.size() - 1);
+        for (size_t i = 0; i < tx.vout.size() - 1; ++i) {
+            ::Serialize(s, tx.vout[i]);
+        }
+
+        const uint8_t encoded = EncodeExtraWeight(extra_weight);
+        s << encoded;
+    } else {
+        s << tx.vout;
+    }
     if (flags & 1) {
         for (size_t i = 0; i < tx.vin.size(); i++) {
             s << tx.vin[i].scriptWitness.stack;
