@@ -7,6 +7,7 @@
 #define BITCOIN_NETMESSAGEMAKER_H
 
 #include <net.h>
+#include <primitives/transaction.h>
 #include <serialize.h>
 
 class CNetMsgMaker
@@ -19,6 +20,9 @@ public:
     {
         CSerializedNetMsg msg;
         msg.command = std::move(sCommand);
+        if (nVersion >= EXTRAWEIGHT_VERSION) {
+            nFlags |= SERIALIZE_TRANSACTION_EXTRAWEIGHT;
+        }
         CVectorWriter{ SER_NETWORK, nFlags | nVersion, msg.data, 0, std::forward<Args>(args)... };
         return msg;
     }
