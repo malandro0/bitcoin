@@ -13,6 +13,7 @@
 #include <uint256.h>
 
 static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
+static const int SERIALIZE_TRANSACTION_NO_SIGNATURE = 0x20000000;
 
 /** An outpoint - a combination of a transaction hash and an index n into its vout */
 class COutPoint
@@ -105,8 +106,14 @@ public:
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action) {
+        const bool include_sig = !(s.GetVersion() & SERIALIZE_TRANSACTION_NO_SIGNATURE);
         READWRITE(prevout);
-        READWRITE(scriptSig);
+        if (include_sig) {
+            READWRITE(scriptSig);
+        } else {
+            CScript dummy_sig;
+            READWRITE(dummy_sig);
+        }
         READWRITE(nSequence);
     }
 
