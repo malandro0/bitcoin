@@ -570,7 +570,7 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
             nTxSigOps /= WITNESS_SCALE_FACTOR;
         }
         entry.pushKV("sigops", nTxSigOps);
-        entry.pushKV("weight", GetTransactionWeight(tx));
+        entry.pushKV("weight", GetTransactionWeight(tx, pblock->nTime));
 
         transactions.push_back(entry);
     }

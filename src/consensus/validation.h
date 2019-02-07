@@ -89,17 +89,29 @@ public:
     std::string GetDebugMessage() const { return strDebugMessage; }
 };
 
+static inline int DiscountSerializationFlags(int64_t blocktime)
+{
+    int discount_flags = SERIALIZE_TRANSACTION_NO_WITNESS;
+    return discount_flags;
+}
+
 // These implement the weight = (stripped_size * 4) + witness_size formula,
 // using only serialization with and without witness data. As witness_size
 // is equal to total_size - stripped_size, this formula is identical to:
 // weight = (stripped_size * 3) + total_size.
-static inline int64_t GetTransactionWeight(const CTransaction& tx)
+static inline int64_t GetTransactionWeight(const CTransaction& tx, int64_t blocktime)
 {
-    return ::GetSerializeSize(tx, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * (WITNESS_SCALE_FACTOR - 1) + ::GetSerializeSize(tx, SER_NETWORK, PROTOCOL_VERSION);
+    return ::GetSerializeSize(tx, SER_NETWORK, PROTOCOL_VERSION | DiscountSerializationFlags(blocktime)) * (WITNESS_SCALE_FACTOR - 1) + ::GetSerializeSize(tx, SER_NETWORK, PROTOCOL_VERSION);
 }
-static inline int64_t GetBlockWeight(const CBlock& block)
+static inline int64_t GetBlockWeight(const CBlock& block, const bool discount_nonsegwit)
 {
-    return ::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * (WITNESS_SCALE_FACTOR - 1) + ::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION);
+    int discount_flags;
+    if (discount_nonsegwit) {
+        discount_flags = DiscountSerializationFlags(block.nTime);
+    } else {
+        discount_flags = SERIALIZE_TRANSACTION_NO_WITNESS;
+    }
+    return ::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION | discount_flags) * (WITNESS_SCALE_FACTOR - 1) + ::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION);
 }
 static inline int64_t GetTransactionInputWeight(const CTxIn& txin)
 {
