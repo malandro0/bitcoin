@@ -89,9 +89,30 @@ public:
     std::string GetDebugMessage() const { return strDebugMessage; }
 };
 
-static inline int DiscountSerializationFlags(int64_t blocktime)
+static inline int BlockWeightRulesVersion(int64_t block_time)
+{
+    // From 2019 Aug 1 through 2019 Dec 31, block weights are limited to 600kWU
+    // Signatures are discounted on both Segwit and non-Segwit signatures
+    if (block_time >= 1564617600 && block_time < 1577836800) {
+        return 1;
+    }
+    return 0;
+}
+
+static inline size_t GetMaxAdjBlockWeight(int64_t block_time)
+{
+    if (BlockWeightRulesVersion(block_time) == 1) {
+        return 600000;
+    }
+    return MAX_BLOCK_WEIGHT;
+}
+
+static inline int DiscountSerializationFlags(int64_t block_time)
 {
     int discount_flags = SERIALIZE_TRANSACTION_NO_WITNESS;
+    if (BlockWeightRulesVersion(block_time) > 0) {
+        discount_flags |= SERIALIZE_TRANSACTION_NO_SIGNATURE;
+    }
     return discount_flags;
 }
 
