@@ -3348,6 +3348,13 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
         return state.DoS(100, false, REJECT_INVALID, "bad-blk-weight", false, strprintf("%s : weight limit failed", __func__));
     }
 
+    // From 2019 Aug 1 through 2019 Dec 31, block weights are limited to 600kWU (approx 300kB)
+    if (block.nTime >= 1564617600 /* 2019 Aug 1 */ && block.nTime < 1577836800 /* 2019 Dec 31 */) {
+        if (GetBlockWeight(block) > 600000) {
+            return state.DoS(100, false, REJECT_INVALID, "bad-blk-weight", false, strprintf("%s : weight limit failed", __func__));
+        }
+    }
+
     return true;
 }
 
