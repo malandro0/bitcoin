@@ -532,8 +532,24 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
     UpdateTime(pblock, consensusParams, pindexPrev);
     pblock->nNonce = 0;
 
+    UniValue result(UniValue::VOBJ);
+
     // NOTE: If at some point we support pre-segwit miners post-segwit-activation, this needs to take segwit support into consideration
     const bool fPreSegWit = (ThresholdState::ACTIVE != VersionBitsState(pindexPrev, consensusParams, Consensus::DEPLOYMENT_SEGWIT, versionbitscache));
+
+    const int64_t block_time = pblock->GetBlockTime();
+    static const int64_t reduced_weight_limit_begins = 1564617600;
+    int64_t weight_time;
+    if (block_time > reduced_weight_limit_begins - 60) {
+        // Behave as if the reduced limit is already in effect
+        weight_time = reduced_weight_limit_begins;
+    } else {
+        // Ensure large templates aren't used once reduced weight limits become effective
+        weight_time = block_time;
+        result.pushKV("maxtime", (int64_t)reduced_weight_limit_begins - 1);
+    }
+    const int64_t max_weight = GetMaxAdjBlockWeight(weight_time);
+    assert(GetBlockWeight(*pblock, true) < max_weight);
 
     UniValue aCaps(UniValue::VARR); aCaps.push_back("proposal");
 
@@ -570,7 +586,7 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
             nTxSigOps /= WITNESS_SCALE_FACTOR;
         }
         entry.pushKV("sigops", nTxSigOps);
-        entry.pushKV("weight", GetTransactionWeight(tx, pblock->nTime));
+        entry.pushKV("weight", GetTransactionWeight(tx, weight_time));
 
         transactions.push_back(entry);
     }
@@ -585,7 +601,6 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
     aMutable.push_back("transactions");
     aMutable.push_back("prevblock");
 
-    UniValue result(UniValue::VOBJ);
     result.pushKV("capabilities", aCaps);
 
     UniValue aRules(UniValue::VARR);
@@ -663,7 +678,7 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
     result.pushKV("sigoplimit", nSigOpLimit);
     result.pushKV("sizelimit", nSizeLimit);
     if (!fPreSegWit) {
-        result.pushKV("weightlimit", (int64_t)MAX_BLOCK_WEIGHT);
+        result.pushKV("weightlimit", max_weight);
     }
     result.pushKV("curtime", pblock->GetBlockTime());
     result.pushKV("bits", strprintf("%08x", pblock->nBits));

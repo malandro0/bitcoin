@@ -131,6 +131,10 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
                        ? nMedianTimePast
                        : pblock->GetBlockTime();
 
+    // Limit weight to below effective max block weight now, and a minute from now to allow for rolling
+    // (-4k for sanity)
+    nBlockMaxWeight = std::min<size_t>(std::min<size_t>(GetMaxAdjBlockWeight(pblock->nTime), GetMaxAdjBlockWeight(pblock->nTime + 60)) - 4000, nBlockMaxWeight);
+
     // Decide whether to include witness transactions
     // This is only needed in case the witness softfork activation is reverted
     // (which would require a very deep reorganization).
@@ -226,7 +230,12 @@ void BlockAssembler::AddToBlock(CTxMemPool::txiter iter)
     pblock->vtx.emplace_back(iter->GetSharedTx());
     pblocktemplate->vTxFees.push_back(iter->GetFee());
     pblocktemplate->vTxSigOpsCost.push_back(iter->GetSigOpCost());
-    nBlockWeight += iter->GetTxWeight();
+    if (BlockWeightRulesVersion(pblock->nTime) > 0) {
+        // mempool only keeps track of v0 weights
+        nBlockWeight += GetTransactionWeight(*iter->GetSharedTx(), pblock->nTime);
+    } else {
+        nBlockWeight += iter->GetTxWeight();
+    }
     ++nBlockTx;
     nBlockSigOpsCost += iter->GetSigOpCost();
     nFees += iter->GetFee();
