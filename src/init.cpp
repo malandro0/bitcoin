@@ -358,6 +358,7 @@ void SetupServerArgs()
     gArgs.AddArg("-version", "Print version and exit", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-alertnotify=<cmd>", "Execute command when a relevant alert is received or we see a really long fork (%s in cmd is replaced by message)", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-assumevalid=<hex>", strprintf("If this block is in the chain assume that it and its ancestors are valid and potentially skip their script verification (0 to verify all, default: %s, testnet: %s)", defaultChainParams->GetConsensus().defaultAssumeValid.GetHex(), testnetChainParams->GetConsensus().defaultAssumeValid.GetHex()), false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-limit300k=0|1|<time>,<time>", strprintf("Enforce 300k block size limit on blocks (default: %s)", DEFAULT_LIMIT300K), false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-blocksdir=<dir>", "Specify blocks directory (default: <datadir>/blocks)", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-blocknotify=<cmd>", "Execute command when the best block changes (%s in cmd is replaced by block hash)", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-blockreconstructionextratxn=<n>", strprintf("Extra transactions to keep in memory for compact block reconstructions (default: %u)", DEFAULT_BLOCK_RECONSTRUCTION_EXTRA_TXN), false, OptionsCategory::OPTIONS);
@@ -1025,6 +1026,25 @@ bool AppInitParameterInteraction()
     LogPrintf("Setting nMinimumChainWork=%s\n", nMinimumChainWork.GetHex());
     if (nMinimumChainWork < UintToArith256(chainparams.GetConsensus().nMinimumChainWork)) {
         LogPrintf("Warning: nMinimumChainWork set below default value of %s\n", chainparams.GetConsensus().nMinimumChainWork.GetHex());
+    }
+
+    {
+        std::string limit300k = gArgs.GetArg("-limit300k", DEFAULT_LIMIT300K);
+        // 0 | 1 | starttime[,endtime]
+        if (limit300k == "0") {
+            limit300k_start = limit300k_end = 0;
+        } else {
+            if (limit300k == "1") {
+                limit300k = DEFAULT_LIMIT300K_TIMES;
+            }
+            limit300k_start = atoi64(limit300k);
+            const size_t comma_pos = limit300k.find(',');
+            if (comma_pos == limit300k.npos) {
+                limit300k_end = std::numeric_limits<int64_t>::max();
+            } else {
+                limit300k_end = atoi64(limit300k.substr(comma_pos + 1));
+            }
+        }
     }
 
     // mempool limits

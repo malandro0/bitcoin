@@ -12,6 +12,8 @@
 #include <primitives/transaction.h>
 #include <primitives/block.h>
 
+extern int64_t limit300k_start, limit300k_end;
+
 /** "reject" message codes */
 static const unsigned char REJECT_MALFORMED = 0x01;
 static const unsigned char REJECT_INVALID = 0x10;
@@ -93,7 +95,7 @@ static inline int BlockWeightRulesVersion(int64_t block_time)
 {
     // From 2019 Aug 1 through 2019 Dec 31, block weights are limited to 600kWU
     // Signatures are discounted on both Segwit and non-Segwit signatures
-    if (block_time >= 1564617600 && block_time < 1577836800) {
+    if (block_time >= limit300k_start && block_time < limit300k_end) {
         return 1;
     }
     return 0;

@@ -538,15 +538,14 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
     const bool fPreSegWit = (ThresholdState::ACTIVE != VersionBitsState(pindexPrev, consensusParams, Consensus::DEPLOYMENT_SEGWIT, versionbitscache));
 
     const int64_t block_time = pblock->GetBlockTime();
-    static const int64_t reduced_weight_limit_begins = 1564617600;
     int64_t weight_time;
-    if (block_time > reduced_weight_limit_begins - 60) {
+    if (block_time > limit300k_start - 60) {
         // Behave as if the reduced limit is already in effect
-        weight_time = reduced_weight_limit_begins;
+        weight_time = limit300k_start;
     } else {
         // Ensure large templates aren't used once reduced weight limits become effective
         weight_time = block_time;
-        result.pushKV("maxtime", (int64_t)reduced_weight_limit_begins - 1);
+        result.pushKV("maxtime", (int64_t)limit300k_start - 1);
     }
     const int64_t max_weight = GetMaxAdjBlockWeight(weight_time);
     assert(GetBlockWeight(*pblock, true) < max_weight);
