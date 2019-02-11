@@ -1034,6 +1034,7 @@ bool AppInitParameterInteraction()
         if (limit300k == "0") {
             limit300k_start = limit300k_end = 0;
         } else {
+            nLocalServices = ServiceFlags(nLocalServices | NODE_300K);
             if (limit300k == "1") {
                 limit300k = DEFAULT_LIMIT300K_TIMES;
             }

@@ -12,6 +12,8 @@
 # include <arpa/inet.h>
 #endif
 
+extern int64_t limit300k_start;
+
 static std::atomic<bool> g_initial_block_download_completed(false);
 
 namespace NetMsgType {
@@ -130,10 +132,16 @@ bool CMessageHeader::IsValid(const MessageStartChars& pchMessageStartIn) const
 
 
 ServiceFlags GetDesirableServiceFlags(ServiceFlags services) {
+    unsigned long ret = NODE_WITNESS;
     if ((services & NODE_NETWORK_LIMITED) && g_initial_block_download_completed) {
-        return ServiceFlags(NODE_NETWORK_LIMITED | NODE_WITNESS);
+        ret |= NODE_NETWORK_LIMITED;
+    } else {
+        ret |= NODE_NETWORK;
     }
-    return ServiceFlags(NODE_NETWORK | NODE_WITNESS);
+    if (limit300k_start) {
+        ret |= NODE_300K;
+    }
+    return ServiceFlags(ret);
 }
 
 void SetServiceFlagsIBDCache(bool state) {

@@ -276,6 +276,9 @@ enum ServiceFlags : uint64_t {
     // collisions and other cases where nodes may be advertising a service they
     // do not actually support. Other service bits should be allocated via the
     // BIP process.
+
+    // NODE_300K means the node enforces the 300k block size limit
+    NODE_300K = (1 << 26),
 };
 
 /**
