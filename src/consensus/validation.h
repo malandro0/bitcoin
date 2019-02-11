@@ -99,7 +99,7 @@ static inline int BlockWeightRulesVersion(int64_t block_time)
     return 0;
 }
 
-static inline size_t GetMaxAdjBlockWeight(int64_t block_time)
+static inline int64_t GetMaxAdjBlockWeight(int64_t block_time)
 {
     if (BlockWeightRulesVersion(block_time) == 1) {
         return 600000;
