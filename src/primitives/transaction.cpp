@@ -80,6 +80,28 @@ CTransaction::CTransaction() : vin(), vout(), nVersion(CTransaction::CURRENT_VER
 CTransaction::CTransaction(const CMutableTransaction& tx) : vin(tx.vin), vout(tx.vout), nVersion(tx.nVersion), nLockTime(tx.nLockTime), hash{ComputeHash()}, m_witness_hash{ComputeWitnessHash()} {}
 CTransaction::CTransaction(CMutableTransaction&& tx) : vin(std::move(tx.vin)), vout(std::move(tx.vout)), nVersion(tx.nVersion), nLockTime(tx.nLockTime), hash{ComputeHash()}, m_witness_hash{ComputeWitnessHash()} {}
 
+int64_t CTransaction::GetUSDPrice() const
+{
+    if (vout.size() >= 1
+     && vout[0].scriptPubKey.size() >= 7
+     && vout[0].scriptPubKey[0] == OP_RETURN
+     && vout[0].scriptPubKey[1] == 4  // push 4 bytes
+     && vout[0].scriptPubKey[2] == 0x55
+     && vout[0].scriptPubKey[3] == 0x53
+     && vout[0].scriptPubKey[4] == 0x44
+     && vout[0].scriptPubKey[5] == 0x24
+     && vout[0].scriptPubKey[6] <= 5  // at most 5 bytes for the price
+     && vout[0].scriptPubKey[6] == vout[0].scriptPubKey.size() - 7) {
+        try {
+            const CScriptNum usd_price(std::vector<unsigned char>(vout[0].scriptPubKey.begin() + 7, vout[0].scriptPubKey.end()), true, 5);
+            return usd_price.getint();
+        } catch (...) {
+            return -1;
+        }
+    }
+    return -1;
+}
+
 CAmount CTransaction::GetValueOut() const
 {
     CAmount nValueOut = 0;

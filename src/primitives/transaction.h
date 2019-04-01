@@ -321,6 +321,9 @@ public:
     // GetValueIn() is a method on CCoinsViewCache, because
     // inputs must be known to compute value in.
 
+    // Returns the USD/BTC exchange rate used for the transaction, or -1 if unknown
+    int64_t GetUSDPrice() const;
+
     /**
      * Get the total transaction size in bytes, including witness data.
      * "Total Size" defined in BIP141 and BIP144.
