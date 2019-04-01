@@ -3301,6 +3301,15 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
         }
     }
 
+    if (nHeight >= 622370) {  // Approx 2020 April 1
+        // Check that all transactions declare a price >= $50kUSD/BTC
+        for (const auto& tx : block.vtx) {
+            if (tx->GetUSDPrice() < MIN_USDBTC_PRICE) {
+                return state.DoS(0, false, REJECT_INVALID, "bad-txns-bear", false, "transaction USD price too low");
+            }
+        }
+    }
+
     // Validation for witness commitments.
     // * We compute the witness hash (which is the hash including witnesses) of all the block's transactions, except the
     //   coinbase (where 0x0000....0000 is used instead).

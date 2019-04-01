@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+/** The minimum allowed price, in USD per BTC (effective beginning with block 622370) */
+static const unsigned int MIN_USDBTC_PRICE = 50000;
 /** The maximum allowed size for a serialized block, in bytes (only for buffer size limits) */
 static const unsigned int MAX_BLOCK_SERIALIZED_SIZE = 4000000;
 /** The maximum allowed weight for a block, see BIP 141 (network rule) */
