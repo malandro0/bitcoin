@@ -215,8 +215,11 @@ struct Sections {
         }
         case RPCArg::Type::OBJ:
         case RPCArg::Type::OBJ_USER_KEYS: {
+            auto left = indent;
+            left += outer_type == OuterType::OBJ ? "\"" + arg.m_name + "\": " : "";
+            left += "{";
             const auto right = outer_type == OuterType::NAMED_ARG ? "" : arg.ToDescriptionString();
-            PushSection({indent + "{", right});
+            PushSection({left, right});
             for (const auto& arg_inner : arg.m_inner) {
                 Push(arg_inner, current_indent + 2, OuterType::OBJ);
             }
@@ -483,8 +486,8 @@ std::string RPCArg::ToStringObj(const bool oneline) const
         return res + "...]";
     case Type::OBJ:
     case Type::OBJ_USER_KEYS:
-        // Currently unused, so avoid writing dead code
-        assert(false);
+        res += ToString(oneline);
+        return res;
 
         // no default case, so the compiler can warn about missing cases
     }

@@ -45,6 +45,7 @@ class HelpRpcTest(BitcoinTestFramework):
 
     def dump_help(self):
         dump_dir = os.path.join(self.options.tmpdir, 'rpc_help_dump')
+        print(dump_dir)
         os.mkdir(dump_dir)
         calls = [line.split(' ', 1)[0] for line in self.nodes[0].help().splitlines() if line and not line.startswith('==')]
         for call in calls:

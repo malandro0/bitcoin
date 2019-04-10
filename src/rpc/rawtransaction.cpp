@@ -696,32 +696,62 @@ static UniValue decodescript(const JSONRPCRequest& request)
 
 UniValue verifyscript(const JSONRPCRequest& request)
 {
-    if (request.fHelp || request.params.size() != 1)
+    if (request.fHelp || request.params.size() != 1) {
         throw std::runtime_error(
-            "verifyscript options\n"
-            "\nExecute a script and return the result.\n"
-            "\nArguments:\n"
-            "1. options      (object, required)\n"
-            "   {\n"
-            "     \"input\": {  (object, required) Information on the input being spent.\n"
-            "       \"scriptPubKey\": \"hex\",  (string, required) Hex encoded pubkey script.\n"
-            "       \"amount\": value,        (numeric, optional) The amount spent. Required for VERIFY_WITNESS flag.\n"
-            "       \"txid\": \"id\",           (string, this or \"transaction\" required) The input's transaction id.\n"
-            "       \"transaction\": \"hex\",   (string, this or \"txid\" required) The input's raw transaction.\n"
-            "       \"vout\": n               (numeric, required) The output number.\n"
-            "     }\n"
-            "     \"flags\": [  (array, optional) Zero or more of:"
-            "       \"BIP16\", \"STRICTENC\", \"DERSIR\", \"LOW_S\", \"SIGPUSHONLY\", \"MINIMALDATA\", \"NULLDUMMY\",\"DISCOURAGE_UPGRADABLE_NOPS\", \"CLEANSTACK\", \"MINIMALIF\", \"NULLFAIL\", \"CHECKLOCKTIMEVERIFY\", \"CHECKSEQUENCEVERIFY\", \"WITNESS\", \"DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM\", \"WITNESS_PUBKEYTYPE\",\n"
-            "       \"NONE\",     Indicates explicitly that no flags should be enabled.\n"
-            "       \"ALL\"       Indicates all supported flags should be enabled.\n"
-            "     ]\n"
-            "   }\n"
-            "\nResult:\n"
+            RPCHelpMan{"verifyscript",
+                "\nExecute a script and return the result.\n",
+                {
+                    {"options", RPCArg::Type::OBJ, RPCArg::Optional::NO, "",
+                        {
+                            {"input", RPCArg::Type::OBJ, RPCArg::Optional::NO, "Information on the input being spent. At least one of scriptPubKey, txid, or transaction must be provided.",
+                                {
+                                    {"scriptPubKey", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED_NAMED_ARG, "Hex encoded pubkey script."},
+                                    {"amount", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "The amount spent (in satoshis). Required for VERIFY_WITNESS flag."},
+                                    {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED_NAMED_ARG, "The input's transaction id."},
+                                    {"transaction", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED_NAMED_ARG, "The input's raw transaction."},
+                                    {"vout", RPCArg::Type::NUM, RPCArg::Optional::NO, "The input's output number."},
+                                },
+                                },
+                            {"spend", RPCArg::Type::OBJ, RPCArg::Optional::NO, "The spending transaction having a script verified.",
+                                {
+                                    {"transaction", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The spending raw transaction."},
+                                },
+                                },
+                            {"flags", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "Zero or more of:",
+                                {
+                                    {"NONE", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Indicates explicitly that no flags should be enabled."},
+                                    {"BIP16", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Evaluate P2SH subscripts (BIP16)."},
+                                    {"STRICTENC", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Passing a non-strict-DER signature or one with undefined hashtype to a checksig operation causes script failure. Evaluating a pubkey that is not (0x04 + 64 bytes) or (0x02 or 0x03 + 32 bytes) by checksig causes script failure. (not used or intended as a consensus rule)."},
+                                    {"DERSIG", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Passing a non-strict-DER signature to a checksig operation causes script failure (BIP62 rule 1)."},
+                                    {"LOW_S", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Passing a non-strict-DER signature or one with S > order/2 to a checksig operation causes script failure (BIP62 rule 5)."},
+                                    {"NULLDUMMY", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Verify dummy stack item consumed by CHECKMULTISIG is of zero-length (BIP62 rule 7)."},
+                                    {"SIGPUSHONLY", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Using a non-push operator in the scriptSig causes script failure (BIP62 rule 2)."},
+                                    {"MINIMALDATA", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Require minimal encodings for all push operations (OP_0... OP_16, OP_1NEGATE where possible, direct pushes up to 75 bytes, OP_PUSHDATA up to 255 bytes, OP_PUSHDATA2 for anything larger). Evaluating any other push causes the script to fail (BIP62 rule 3). In addition, whenever a stack element is interpreted as a number, it must be of minimal length (BIP62 rule 4)."},
+                                    {"DISCOURAGE_UPGRADABLE_NOPS", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Reject use of NOPs reserved for upgrades (NOP1-10). NOPs that have associated forks to give them new meaning (CLTV, CSV) are not subject to this rule."},
+                                    {"CLEANSTACK", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Require that only a single stack element remains after evaluation."},
+                                    {"CHECKLOCKTIMEVERIFY", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Verify CHECKLOCKTIMEVERIFY (BIP65)."},
+                                    {"CHECKSEQUENCEVERIFY", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Support CHECKSEQUENCEVERIFY opcode (BIP112)."},
+                                    {"WITNESS", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Support segregated witness."},
+                                    {"DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Reject unrecognised witness programs."},
+                                    {"MINIMALIF", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Segwit script only: Require the argument of OP_IF/NOTIF to be exactly 0x01 or empty vector."},
+                                    {"NULLFAIL", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Signature(s) must be empty vector if a CHECK(MULTI)SIG operation failed."},
+                                    {"WITNESS_PUBKEYTYPE", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Public keys in segregated witness scripts must be compressed."},
+                                    {"CONST_SCRIPTCODE", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Making OP_CODESEPARATOR and FindAndDelete fail any non-segwit scripts"},
+                                    {"ALL", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Indicates all supported flags should be enabled."},
+                                },
+                                },
+                        },
+                        },
+                },
+                RPCResult{
             "{\n"
             "  \"result\": true|false,  (boolean) Whether the spend is allowed.\n"
             "  \"error\": \"code\",       (string) What error, if any, caused the script to fail.\n"
             "}\n"
-        );
+                },
+                RPCExamples{""},
+            }.ToString());
+    }
 
     RPCTypeCheck(request.params, {UniValue::VOBJ});
 
@@ -759,29 +789,11 @@ UniValue verifyscript(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "expected number for \"input\" \"amount\"");
     }
 
-    const UniValue & txid_uv = find_value(input_uv, "txid");
-    const UniValue & rawtx_uv = find_value(input_uv, "transaction");
-    CMutableTransaction mtx;
-    CTransactionRef tx;
-    if (rawtx_uv.isStr()) {
-        if (!DecodeHexTx(mtx, rawtx_uv.get_str(), true)) {
-            throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
-        }
-        if (txid_uv.isStr()) {
-            const uint256 txid = ParseHashV(txid_uv, "txid");
-            if (mtx.GetHash() != txid) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "\"input\" \"txid\" and \"transaction\" strings contradict");
-            }
-        }
-        tx = MakeTransactionRef(std::move(mtx));
-    } else if (txid_uv.isStr()) {
-        const uint256 txid = ParseHashV(txid_uv, "txid");
-        uint256 hashBlock;
-        if (!GetTransaction(txid, tx, Params().GetConsensus(), hashBlock, true)) {
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Cannot find transaction specified by \"txid\"");
-        }
-    } else {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "expected \"input\" with either \"txid\" or \"transaction\" string");
+    const UniValue & spend_uv = find_value(options, "spend");
+    const UniValue & spend_rawtx_uv = find_value(spend_uv, "transaction");
+    CMutableTransaction spending_tx;
+    if (!DecodeHexTx(spending_tx, find_value(spend_uv, "transaction").get_str(), true)) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
     }
 
     const UniValue & vout_uv = find_value(input_uv, "vout");
@@ -790,15 +802,15 @@ UniValue verifyscript(const JSONRPCRequest& request)
     }
     unsigned int vout = vout_uv.get_int64();
 
-    PrecomputedTransactionData txdata(*tx);
+    PrecomputedTransactionData txdata(spending_tx);
     ScriptError err;
-    const bool rv = VerifyScript(tx->vin[vout].scriptSig, scriptPubKey, &tx->vin[vout].scriptWitness, flags, TransactionSignatureChecker(&*tx, vout, amount, txdata), &err);
+    const bool rv = VerifyScript(spending_tx.vin[vout].scriptSig, scriptPubKey, spending_tx.vin[vout].scriptWitness, flags, TransactionSignatureChecker(&spending_tx, vout, amount, txdata), &err);
 
     UniValue result(UniValue::VOBJ);
-    result.push_back(Pair("result", rv));
+    result.pushKV("result", rv);
 
     if (!rv) {
-        result.push_back(Pair("error", std::string(ScriptErrorString(err))));
+        result.pushKV("error", std::string(ScriptErrorString(err)));
     }
 
     return result;
