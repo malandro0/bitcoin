@@ -3464,14 +3464,16 @@ bool ProcessMessage(CNode* pfrom, const std::string& msg_type, CDataStream& vRec
         return true;
     }
 
-    if (msg_type == NetMsgType::GETCFILTERS) {
-        return ProcessGetCFilters(pfrom, vRecv, chainparams, connman);
-    }
-    if (msg_type == NetMsgType::GETCFHEADERS) {
-        return ProcessGetCFHeaders(pfrom, vRecv, chainparams, connman);
-    }
-    if (msg_type == NetMsgType::GETCFCHECKPT) {
-        return ProcessGetCFCheckPt(pfrom, vRecv, chainparams, connman);
+    if (pfrom->GetLocalServices() & NODE_COMPACT_FILTERS) {
+        if (msg_type == NetMsgType::GETCFILTERS) {
+            return ProcessGetCFilters(pfrom, vRecv, chainparams, connman);
+        }
+        if (msg_type == NetMsgType::GETCFHEADERS) {
+            return ProcessGetCFHeaders(pfrom, vRecv, chainparams, connman);
+        }
+        if (msg_type == NetMsgType::GETCFCHECKPT) {
+            return ProcessGetCFCheckPt(pfrom, vRecv, chainparams, connman);
+        }
     }
 
     if (msg_type == NetMsgType::NOTFOUND) {
