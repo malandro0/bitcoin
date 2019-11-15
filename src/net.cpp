@@ -495,6 +495,9 @@ void CConnman::InitializePermissionFlags(NetPermissionFlags& flags, ServiceFlags
     if (NetPermissions::HasFlag(flags, PF_BLOOMFILTER)) {
         service_flags = static_cast<ServiceFlags>(service_flags | NODE_BLOOM);
     }
+    if (NetPermissions::HasFlag(flags, PF_CFILTERS)) {
+        service_flags = static_cast<ServiceFlags>(service_flags | NODE_COMPACT_FILTERS);
+    }
 }
 
 std::string CNode::GetAddrName() const {
