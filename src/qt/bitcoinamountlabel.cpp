@@ -4,6 +4,8 @@
 
 #include <qt/bitcoinamountlabel.h>
 
+#include <qt/bitcoinunits.h>
+
 #include <QChar>
 #include <QLabel>
 #include <QString>
@@ -12,46 +14,31 @@
 
 #include <cassert>
 
-namespace {
-const QChar space{' '};
-const QChar point{'.'};
-const QChar mask{'#'};
-
-QString cloak(QString value_and_unit)
-{
-    const QString unit = space + value_and_unit.split(space).last();
-    const QStringList value_parts = value_and_unit.remove(unit).split(point);
-    assert(value_parts.size() <= 2);
-    QString cloaked = QString(value_parts.first().size() - 1, space) + mask;
-    if (value_parts.size() == 2) {
-        cloaked += point + QString(value_parts.last().size(), mask);
-    }
-    return cloaked + unit;
-}
-} // namespace
-
 BitcoinAmountLabel::BitcoinAmountLabel(QWidget* parent)
     : QLabel(parent)
 {
 }
 
-void BitcoinAmountLabel::setText(const QString& newText)
-{
-    if (cache.isEmpty()) {
-        QLabel::setText(newText);
+void BitcoinAmountLabel::setValue(const CAmount& value, const int unit) {
+    if (unit != -1) m_unit = unit;
+    m_value = value;
+    if (m_privacy) {
+        QString s = BitcoinUnits::formatWithUnit(m_unit, 0, false, BitcoinUnits::separatorAlways);
+        s.replace('0', '#');
+        setText(s);
     } else {
-        cache = newText;
-        QLabel::setText(cloak(cache));
+        setText(BitcoinUnits::formatWithUnit(m_unit, value, false, BitcoinUnits::separatorAlways));
     }
+}
+
+void BitcoinAmountLabel::setDisplayUnit(int unit)
+{
+    m_unit = unit;
+    setValue(m_value);
 }
 
 void BitcoinAmountLabel::setPrivacyMode(bool privacy)
 {
-    if (privacy && cache.isEmpty()) {
-        cache = text();
-        QLabel::setText(cloak(cache));
-    } else if (!privacy && !cache.isEmpty()) {
-        QLabel::setText(cache);
-        cache.clear();
-    }
+    m_privacy = privacy;
+    setValue(m_value);
 }

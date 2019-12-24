@@ -465,7 +465,6 @@ int GuiMain(int argc, char* argv[])
 
     // Now that the QApplication is setup and we have parsed our parameters, we can set the platform style
     app.setupPlatformStyle();
-    app.setStyleSheet("BitcoinAmountLabel { font-family: monospace }");
 
     /// 3. Application identification
     // must be set before OptionsModel is initialized or translations are loaded,

@@ -5,6 +5,9 @@
 #ifndef BITCOIN_QT_BITCOINAMOUNTLABEL_H
 #define BITCOIN_QT_BITCOINAMOUNTLABEL_H
 
+#include <amount.h>
+#include <qt/bitcoinunits.h>
+
 #include <QLabel>
 #include <QObject>
 #include <QString>
@@ -22,13 +25,20 @@ class BitcoinAmountLabel : public QLabel
 
 public:
     explicit BitcoinAmountLabel(QWidget* parent = nullptr);
-    void setText(const QString& newText);
+
+    void setValue(const CAmount& value, int unit = -1);
+
+    /** Change unit used to display amount. */
+    void setDisplayUnit(int unit);
 
 public Q_SLOTS:
     void setPrivacyMode(bool privacy);
 
 private:
-    QString cache{};
+    CAmount m_value{0};
+    int m_unit{BitcoinUnits::BTC};
+    bool m_privacy{false};
+
 };
 
 #endif // BITCOIN_QT_BITCOINAMOUNTLABEL_H
