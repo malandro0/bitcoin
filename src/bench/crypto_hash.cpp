@@ -191,8 +191,29 @@ static void SipHash_32b(benchmark::Bench& bench)
 {
     uint256 x;
     uint64_t k1 = 0;
-    bench.run([&] {
+    bench.batch(x.size()).unit("byte").run([&] {
         *((uint64_t*)x.begin()) = SipHashUint256(0, ++k1, x);
+    });
+}
+
+static void SipHash_3b(benchmark::Bench& bench)
+{
+    uint64_t hash = 0;
+    uint64_t k2 = 0;
+    std::vector<uint8_t> in(3, 0xee);
+    bench.batch(in.size()).unit("byte").run([&] {
+        hash = CSipHasher(hash, ++k2).Write(in).Finalize();
+    });
+}
+
+
+static void SipHash(benchmark::Bench& bench)
+{
+    uint64_t hash = 0;
+    uint64_t k2 = 0;
+    std::vector<uint8_t> in(BUFFER_SIZE, 0);
+    bench.batch(in.size()).unit("byte").run([&] {
+        hash = CSipHasher(hash, ++k2).Write(in).Finalize();
     });
 }
 
@@ -264,12 +285,14 @@ BENCHMARK(SHA256_AVX2, benchmark::PriorityLevel::HIGH);
 BENCHMARK(SHA256_SHANI, benchmark::PriorityLevel::HIGH);
 BENCHMARK(SHA512, benchmark::PriorityLevel::HIGH);
 BENCHMARK(SHA3_256_1M, benchmark::PriorityLevel::HIGH);
+BENCHMARK(SipHash, benchmark::PriorityLevel::HIGH);
 
 BENCHMARK(SHA256_32b_STANDARD, benchmark::PriorityLevel::HIGH);
 BENCHMARK(SHA256_32b_SSE4, benchmark::PriorityLevel::HIGH);
 BENCHMARK(SHA256_32b_AVX2, benchmark::PriorityLevel::HIGH);
 BENCHMARK(SHA256_32b_SHANI, benchmark::PriorityLevel::HIGH);
 BENCHMARK(SipHash_32b, benchmark::PriorityLevel::HIGH);
+BENCHMARK(SipHash_3b, benchmark::PriorityLevel::HIGH);
 BENCHMARK(SHA256D64_1024_STANDARD, benchmark::PriorityLevel::HIGH);
 BENCHMARK(SHA256D64_1024_SSE4, benchmark::PriorityLevel::HIGH);
 BENCHMARK(SHA256D64_1024_AVX2, benchmark::PriorityLevel::HIGH);
