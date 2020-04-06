@@ -3687,8 +3687,11 @@ bool CWallet::AddDestData(WalletBatch& batch, const CTxDestination &dest, const 
     if (boost::get<CNoDestination>(&dest))
         return false;
 
+    bool is_change = m_address_book[dest].IsChange();
+    if (key == "used") is_change = false;
+
     m_address_book[dest].destdata.insert(std::make_pair(key, value));
-    return batch.WriteDestData(EncodeDestination(dest), key, value, m_address_book[dest].IsChange());
+    return batch.WriteDestData(EncodeDestination(dest), key, value, is_change);
 }
 
 bool CWallet::EraseDestData(WalletBatch& batch, const CTxDestination &dest, const std::string &key)
@@ -3702,7 +3705,9 @@ void CWallet::LoadDestData(const CTxDestination &dest, const std::string &key, c
 {
     auto& destdata = m_address_book[dest].destdata;
     destdata.insert(std::make_pair(key, value));
-    if (!is_change) destdata["_nonchange_destdata"] = std::string();
+    if ((!is_change) && key != "used") {
+        destdata["_nonchange_destdata"] = std::string();
+    }
 }
 
 void CWallet::FixAddressBook(WalletBatch& batch)
@@ -3719,6 +3724,7 @@ void CWallet::FixAddressBook(WalletBatch& batch)
         ++fixed_addresses;
         const std::string strAddress = EncodeDestination(addressbookdata_pair.first);
         for (const auto& item : destdata) {
+            if (item.first == "used") continue;
             ++migrated_keys;
             batch.EraseDestData(strAddress, item.first);
             batch.WriteDestData(strAddress, item.first, item.second, /* is_change */ true);
