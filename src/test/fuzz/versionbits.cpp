@@ -25,14 +25,14 @@ private:
     const Consensus::Params dummy_params{};
 
 public:
-    const int64_t m_begin;
-    const int64_t m_end;
+    const int m_begin;
+    const int m_end;
     const int m_period;
     const int m_threshold;
     const int m_min_activation_height;
     const int m_bit;
 
-    TestConditionChecker(int64_t begin, int64_t end, int period, int threshold, int min_activation_height, int bit)
+    TestConditionChecker(int begin, int end, int period, int threshold, int min_activation_height, int bit)
         : m_begin{begin}, m_end{end}, m_period{period}, m_threshold{threshold}, m_min_activation_height{min_activation_height}, m_bit{bit}
     {
         assert(m_period > 0);
@@ -42,8 +42,8 @@ public:
     }
 
     bool Condition(const CBlockIndex* pindex, const Consensus::Params& params) const override { return Condition(pindex->nVersion); }
-    int64_t BeginTime(const Consensus::Params& params) const override { return m_begin; }
-    int64_t EndTime(const Consensus::Params& params) const override { return m_end; }
+    int StartHeight(const Consensus::Params& params) const override { return m_begin; }
+    int TimeoutHeight(const Consensus::Params& params) const override { return m_end; }
     int Period(const Consensus::Params& params) const override { return m_period; }
     int Threshold(const Consensus::Params& params) const override { return m_threshold; }
     int MinActivationHeight(const Consensus::Params& params) const override { return m_min_activation_height; }
@@ -66,14 +66,12 @@ class Blocks
 {
 private:
     std::vector<std::unique_ptr<CBlockIndex>> m_blocks;
-    const uint32_t m_start_time;
-    const uint32_t m_interval;
     const int32_t m_signal;
     const int32_t m_no_signal;
 
 public:
-    Blocks(uint32_t start_time, uint32_t interval, int32_t signal, int32_t no_signal)
-        : m_start_time{start_time}, m_interval{interval}, m_signal{signal}, m_no_signal{no_signal} {}
+    Blocks(int32_t signal, int32_t no_signal)
+        : m_signal{signal}, m_no_signal{no_signal} {}
 
     size_t size() const { return m_blocks.size(); }
 
@@ -86,7 +84,6 @@ public:
     {
         CBlockHeader header;
         header.nVersion = signal ? m_signal : m_no_signal;
-        header.nTime = m_start_time + m_blocks.size() * m_interval;
         header.nBits = 0x1d00ffff;
 
         auto current_block = std::make_unique<CBlockIndex>(header);
@@ -108,8 +105,6 @@ void initialize()
     assert(g_params != nullptr);
 }
 
-constexpr uint32_t MAX_START_TIME = 4102444800; // 2100-01-01
-
 void test_one_input(const std::vector<uint8_t>& buffer)
 {
     const CChainParams& params = *g_params;
@@ -127,12 +122,6 @@ void test_one_input(const std::vector<uint8_t>& buffer)
     const int threshold = fuzzed_data_provider.ConsumeIntegralInRange(1, period);
     assert(0 < threshold && threshold <= period); // must be able to both pass and fail threshold!
 
-    // too many blocks at 10min each might cause uint32_t time to overflow if
-    // block_start_time is at the end of the range above
-    assert(std::numeric_limits<uint32_t>::max() - MAX_START_TIME > interval * max_blocks);
-
-    const int64_t block_start_time = fuzzed_data_provider.ConsumeIntegralInRange<uint32_t>(params.GenesisBlock().nTime, MAX_START_TIME);
-
     // what values for version will we use to signal / not signal?
     const int32_t ver_signal = fuzzed_data_provider.ConsumeIntegral<int32_t>();
     const int32_t ver_nosignal = fuzzed_data_provider.ConsumeIntegral<int32_t>();
@@ -142,33 +131,25 @@ void test_one_input(const std::vector<uint8_t>& buffer)
 
     bool always_active_test = false;
     bool never_active_test = false;
-    int64_t start_time;
-    int64_t timeout;
+    int startheight;
+    int timeoutheight;
     if (fuzzed_data_provider.ConsumeBool()) {
         // pick the timestamp to switch based on a block
-        // note states will change *after* these blocks because mediantime lags
-        int start_block = fuzzed_data_provider.ConsumeIntegralInRange<int>(0, period * (max_periods - 3));
-        int end_block = fuzzed_data_provider.ConsumeIntegralInRange<int>(0, period * (max_periods - 3));
-
-        start_time = block_start_time + start_block * interval;
-        timeout = block_start_time + end_block * interval;
-
-        // allow for times to not exactly match a block
-        if (fuzzed_data_provider.ConsumeBool()) start_time += interval / 2;
-        if (fuzzed_data_provider.ConsumeBool()) timeout += interval / 2;
+        startheight = fuzzed_data_provider.ConsumeIntegralInRange<int>(0, period * (max_periods - 2));
+        timeoutheight = fuzzed_data_provider.ConsumeIntegralInRange<int>(0, period * (max_periods - 2));
     } else {
         if (fuzzed_data_provider.ConsumeBool()) {
-            start_time = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
+            startheight = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
             always_active_test = true;
         } else {
-            start_time = Consensus::BIP9Deployment::NEVER_ACTIVE;
+            startheight = Consensus::BIP9Deployment::NEVER_ACTIVE;
             never_active_test = true;
         }
-        timeout = fuzzed_data_provider.ConsumeBool() ? Consensus::BIP9Deployment::NO_TIMEOUT : fuzzed_data_provider.ConsumeIntegral<int64_t>();
+        timeoutheight = fuzzed_data_provider.ConsumeBool() ? Consensus::BIP9Deployment::NO_TIMEOUT : fuzzed_data_provider.ConsumeIntegral<int>();
     }
     int min_activation = fuzzed_data_provider.ConsumeIntegralInRange<int>(0, period * max_periods);
 
-    TestConditionChecker checker(start_time, timeout, period, threshold, min_activation, bit);
+    TestConditionChecker checker(startheight, timeoutheight, period, threshold, min_activation, bit);
 
     // Early exit if the versions don't signal sensibly for the deployment
     if (!checker.Condition(ver_signal)) return;
@@ -181,7 +162,7 @@ void test_one_input(const std::vector<uint8_t>& buffer)
     assert(ver_signal >= VERSIONBITS_LAST_OLD_BLOCK_VERSION);
 
     // Now that we have chosen time and versions, setup to mine blocks
-    Blocks blocks(block_start_time, interval, ver_signal, ver_nosignal);
+    Blocks blocks(ver_signal, ver_nosignal);
 
     /* Strategy:
      *  * we will mine a final period worth of blocks, with
@@ -265,6 +246,9 @@ void test_one_input(const std::vector<uint8_t>& buffer)
     CBlockIndex* current_block = blocks.mine_block(signal);
     assert(checker.Condition(current_block) == signal);
 
+    // All states are for the next block
+    int height = current_block->nHeight + 1;
+
     // GetStateStatistics is safe on a period boundary
     // and has progressed to a new period
     const BIP9Stats stats = checker.GetStateStatisticsFor(current_block);
@@ -292,13 +276,14 @@ void test_one_input(const std::vector<uint8_t>& buffer)
     case ThresholdState::DEFINED:
         assert(since == 0);
         assert(exp_state == ThresholdState::DEFINED);
-        assert(current_block->GetMedianTimePast() < checker.m_begin);
+        assert(height < checker.m_begin);
         break;
     case ThresholdState::STARTED:
-        assert(current_block->GetMedianTimePast() >= checker.m_begin);
+        assert(height >= checker.m_begin);
+        assert(!never_active_test);
         if (exp_state == ThresholdState::STARTED) {
             assert(blocks_sig < threshold);
-            assert(current_block->GetMedianTimePast() < checker.m_end);
+            assert(height < checker.m_end);
         } else {
             assert(exp_state == ThresholdState::DEFINED);
         }
@@ -316,7 +301,8 @@ void test_one_input(const std::vector<uint8_t>& buffer)
         assert(exp_state == ThresholdState::ACTIVE || exp_state == ThresholdState::LOCKED_IN);
         break;
     case ThresholdState::FAILED:
-        assert(never_active_test || current_block->GetMedianTimePast() >= checker.m_end);
+        assert(height >= checker.m_begin);
+        assert(never_active_test || height >= checker.m_end);
         if (exp_state == ThresholdState::STARTED) {
             assert(blocks_sig < threshold);
         } else {
