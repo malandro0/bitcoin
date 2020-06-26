@@ -44,6 +44,7 @@
 #include <util/system.h>
 #include <util/translation.h>
 #include <validationinterface.h>
+#include <versionbitsinfo.h>
 #include <warnings.h>
 
 #include <string>
@@ -1809,6 +1810,7 @@ public:
 
     int64_t StartHeight(const Consensus::Params& params) const override { return 0; }
     int64_t TimeoutHeight(const Consensus::Params& params) const override { return std::numeric_limits<int64_t>::max(); }
+    ThresholdState TimeoutBehaviour(const Consensus::Params& params) const override { return ThresholdState::FAILING; }
     int Period(const Consensus::Params& params) const override { return params.nMinerConfirmationWindow; }
     int Threshold(const Consensus::Params& params) const override { return params.nRuleChangeActivationThreshold; }
 
@@ -3479,6 +3481,18 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, BlockValidatio
 static bool ContextualCheckBlock(const CBlock& block, BlockValidationState& state, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev)
 {
     const int nHeight = pindexPrev == nullptr ? 0 : pindexPrev->nHeight + 1;
+
+    // Enforce LOCKED_IN status of deployments
+    for (int j = 0; j < (int)Consensus::MAX_VERSION_BITS_DEPLOYMENTS; ++j) {
+        Consensus::DeploymentPos deployment_pos = Consensus::DeploymentPos(j);
+        ThresholdState deployment_state = VersionBitsState(pindexPrev, consensusParams, deployment_pos, versionbitscache);
+        if (deployment_state == ThresholdState::LOCKED_IN) {
+            if (!(block.nVersion & VersionBitsMask(consensusParams, deployment_pos))) {
+                const auto& deployment_name = VersionBitsDeploymentInfo[deployment_pos].name;
+                return state.Invalid(BlockValidationResult::BLOCK_RECENT_CONSENSUS_CHANGE, std::string{"bad-vbit-unset-"} + deployment_name, std::string{deployment_name} + " has locked in and must be signalled");
+            }
+        }
+    }
 
     // Start enforcing BIP113 (Median Time Past).
     int nLockTimeFlags = 0;
