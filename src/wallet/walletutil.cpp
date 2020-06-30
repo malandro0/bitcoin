@@ -58,9 +58,26 @@ bool IsBerkeleyBtree(const fs::path& path)
 std::vector<fs::path> ListWalletDir()
 {
     const fs::path wallet_dir = GetWalletDir();
+    const fs::path data_dir = GetDataDir();
+    const fs::path blocks_dir = GetBlocksDir();
+
     const size_t offset = wallet_dir.string().size() + 1;
     std::vector<fs::path> paths;
     boost::system::error_code ec;
+
+    // Here we place the top level dirs we want to skip in case walletdir is datadir or blocksdir
+    // Those directories are referenced in doc/files.md
+    const std::vector<fs::path> ignore_paths = {
+                                        blocks_dir,
+                                        data_dir / "blktree",
+                                        data_dir / "chainstate",
+                                        data_dir / "coins",
+                                        data_dir / "database",
+                                        data_dir / "indexes",
+                                        data_dir / "regtest",
+                                        data_dir / "signet",
+                                        data_dir / "testnet3"
+                                        };
 
     auto it = fs::recursive_directory_iterator(wallet_dir, ec);
     if (ec) {
@@ -76,6 +93,12 @@ std::vector<fs::path> ListWalletDir()
         }
 
         try {
+
+        // We don't want to iterate through those special node dirs
+        if (std::count(ignore_paths.begin(), ignore_paths.end(), it->path())) {
+            it.no_push();
+            continue;
+        }
 
         // Get wallet path relative to walletdir by removing walletdir from the wallet path.
         // This can be replaced by boost::filesystem::lexically_relative once boost is bumped to 1.60.
@@ -94,7 +117,7 @@ std::vector<fs::path> ListWalletDir()
                 // software will never create these files but will allow them to be
                 // opened in a shared database environment for backwards compatibility.
                 // Add it to the list of available wallets.
-                paths.emplace_back(path);
+                paths.emplace_back(it->path().filename());
             }
         }
 
