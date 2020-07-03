@@ -14,6 +14,8 @@
 #include <memory>
 #include <vector>
 
+class ArgsManager;
+
 struct SeedSpec6 {
     uint8_t addr[16];
     uint16_t port;
@@ -56,6 +58,8 @@ public:
 
         MAX_BASE58_TYPES
     };
+
+    virtual void UpdateActivationParametersFromArgs(const ArgsManager&);
 
     const Consensus::Params& GetConsensus() const { return consensus; }
     const CMessageHeader::MessageStartChars& MessageStart() const { return pchMessageStart; }

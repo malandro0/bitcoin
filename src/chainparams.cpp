@@ -56,6 +56,25 @@ static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nNonce, uint32_t nBits
     return CreateGenesisBlock(pszTimestamp, genesisOutputScript, nTime, nNonce, nBits, nVersion, genesisReward);
 }
 
+void CChainParams::UpdateActivationParametersFromArgs(const ArgsManager& args)
+{
+    for (const std::string& deployment : args.GetArgs("-deploymentlockin")) {
+        bool found = false;
+        for (int j = 0; j < int(Consensus::MAX_VERSION_BITS_DEPLOYMENTS); ++j) {
+            if (deployment == VersionBitsDeploymentInfo[j].name) {
+                found = true;
+                auto& lockinontimeout = consensus.vDeployments[Consensus::DeploymentPos(j)].lockinontimeout;
+                LogPrintf("User requested lockin-on-timeout for deployment %s%s\n", deployment, lockinontimeout ? " (already enabled)" : "");
+                lockinontimeout = true;
+                break;
+            }
+        }
+        if (!found) {
+            throw std::runtime_error(strprintf("Invalid deployment for deploymentlockin (%s)", deployment));
+        }
+    }
+}
+
 /**
  * Main network
  */
@@ -292,8 +311,6 @@ public:
         m_assumed_blockchain_size = 0;
         m_assumed_chain_state_size = 0;
 
-        UpdateActivationParametersFromArgs(args);
-
         genesis = CreateGenesisBlock(1296688602, 2, 0x207fffff, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
         assert(consensus.hashGenesisBlock == uint256S("0x0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206"));
@@ -380,6 +397,8 @@ void CRegTestParams::UpdateActivationParametersFromArgs(const ArgsManager& args)
             throw std::runtime_error(strprintf("Invalid deployment (%s)", vDeploymentParams[0]));
         }
     }
+
+    CChainParams::UpdateActivationParametersFromArgs(args);
 }
 
 static std::unique_ptr<const CChainParams> globalChainParams;
@@ -391,13 +410,18 @@ const CChainParams &Params() {
 
 std::unique_ptr<const CChainParams> CreateChainParams(const std::string& chain)
 {
+    std::unique_ptr<CChainParams> ret;
     if (chain == CBaseChainParams::MAIN)
-        return std::unique_ptr<CChainParams>(new CMainParams());
+        ret = std::unique_ptr<CChainParams>(new CMainParams());
     else if (chain == CBaseChainParams::TESTNET)
-        return std::unique_ptr<CChainParams>(new CTestNetParams());
+        ret = std::unique_ptr<CChainParams>(new CTestNetParams());
     else if (chain == CBaseChainParams::REGTEST)
-        return std::unique_ptr<CChainParams>(new CRegTestParams(gArgs));
-    throw std::runtime_error(strprintf("%s: Unknown chain %s.", __func__, chain));
+        ret = std::unique_ptr<CChainParams>(new CRegTestParams(gArgs));
+    else
+        throw std::runtime_error(strprintf("%s: Unknown chain %s.", __func__, chain));
+
+    ret->UpdateActivationParametersFromArgs(gArgs);
+    return ret;
 }
 
 void SelectParams(const std::string& network)
