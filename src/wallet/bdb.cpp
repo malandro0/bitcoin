@@ -648,7 +648,7 @@ std::string BerkeleyDatabase::GetUniqueId() const
 {
     assert(env);
     if (env->IsMock()) {
-        return strprintf("bdb tmp %p", this);
+        return strprintf("tmp %p", this);
     }
     // TODO: Check that this doesn't change across endian/platform
     auto fileid = env->m_fileids.at(strFile);

@@ -621,6 +621,8 @@ private:
     CKeyingMaterial vMasterKey GUARDED_BY(cs_wallet);
 
 
+    bool m_prune_lock_enabled{false};
+
     bool Unlock(const CKeyingMaterial& vMasterKeyIn, bool accept_no_keys = false);
 
     std::atomic<bool> fAbortRescan{false};
@@ -750,6 +752,10 @@ public:
     /** Get a name for this wallet for logging/debugging purposes.
      */
     const std::string& GetName() const { return m_location.GetName(); }
+
+    std::string GetPruneLockId() const;
+    void SetPruneLock(uint64_t completed_sync_height);
+    void SetPruneLockEnabled(bool enable);
 
     typedef std::map<unsigned int, CMasterKey> MasterKeyMap;
     MasterKeyMap mapMasterKeys;

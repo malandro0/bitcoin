@@ -279,6 +279,33 @@ std::string CWallet::GetUniqueId() const
     return database->GetUniqueId();
 }
 
+std::string CWallet::GetPruneLockId() const
+{
+    return strprintf("wallet %s", GetUniqueId());
+}
+
+void CWallet::SetPruneLock(const uint64_t completed_sync_height)
+{
+    PruneLockInfo lockinfo;
+    lockinfo.m_desc = strprintf("Wallet: %s", GetName());
+    lockinfo.m_height_first = completed_sync_height + 1;
+    const auto lockid = GetPruneLockId();
+    if (!lockid.compare(0, 4, "tmp ")) {
+        lockinfo.m_temporary = true;
+    }
+    chain().setPruneLock(lockid, lockinfo);
+}
+
+void CWallet::SetPruneLockEnabled(bool enable)
+{
+    m_prune_lock_enabled = enable;
+    if (enable) {
+        // Immediately add/update the prune lock
+        LOCK(cs_wallet);
+        SetPruneLock(m_last_block_processed_height);
+    }
+}
+
 const CWalletTx* CWallet::GetWalletTx(const uint256& hash) const
 {
     LOCK(cs_wallet);
@@ -1179,6 +1206,8 @@ void CWallet::blockConnected(const CBlock& block, int height)
         SyncTransaction(block.vtx[index], {CWalletTx::Status::CONFIRMED, height, block_hash, (int)index});
         transactionRemovedFromMempool(block.vtx[index], MemPoolRemovalReason::BLOCK);
     }
+
+    SetPruneLock(height);
 }
 
 void CWallet::blockDisconnected(const CBlock& block, int height)
@@ -4131,6 +4160,8 @@ bool CWallet::UpgradeWallet(int version, bilingual_str& error, std::vector<bilin
 void CWallet::postInitProcess()
 {
     LOCK(cs_wallet);
+
+    m_prune_lock_enabled = chain().pruneLockExists(GetPruneLockId());
 
     // Add wallet transactions that aren't already in a block to mempool
     // Do this here as mempool requires genesis block to be loaded

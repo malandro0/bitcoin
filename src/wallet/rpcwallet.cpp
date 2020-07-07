@@ -2483,6 +2483,11 @@ static UniValue loadwallet(const JSONRPCRequest& request)
                 "\napplied to the new wallet (eg -zapwallettxes, rescan, etc).\n",
                 {
                     {"filename", RPCArg::Type::STR, RPCArg::Optional::NO, "The wallet directory or .dat file."},
+                    {"options", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED_NAMED_ARG, "",
+                        {
+                            {"prune_lock", RPCArg::Type::BOOL, /* default */ "true if prune lock already exists, otherwise false", "If enabled, pruning will be paused until the wallet is loaded and synced."},
+                        },
+                        "options"},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "",
@@ -2496,6 +2501,15 @@ static UniValue loadwallet(const JSONRPCRequest& request)
             + HelpExampleRpc("loadwallet", "\"test.dat\"")
                 },
             }.Check(request);
+
+    UniValue options = request.params[1];
+    if (!options.isNull()) {
+        RPCTypeCheckObj(options,
+            {
+                {"prune_lock", UniValueType(UniValue::VBOOL)},
+            },
+            /*allow_null=*/ true, /*strict=*/ true);
+    }
 
     WalletContext& context = EnsureWalletContext(request.context);
     WalletLocation location(request.params[0].get_str());
@@ -2514,6 +2528,10 @@ static UniValue loadwallet(const JSONRPCRequest& request)
     std::vector<bilingual_str> warnings;
     std::shared_ptr<CWallet> const wallet = LoadWallet(*context.chain, location, error, warnings);
     if (!wallet) throw JSONRPCError(RPC_WALLET_ERROR, error.original);
+
+    if (!options["prune_lock"].isNull()) {
+        wallet->SetPruneLockEnabled(options["prune_lock"].get_bool());
+    }
 
     UniValue obj(UniValue::VOBJ);
     obj.pushKV("name", wallet->GetName());
@@ -2599,6 +2617,11 @@ static UniValue createwallet(const JSONRPCRequest& request)
             {"passphrase", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Encrypt the wallet with this passphrase."},
             {"avoid_reuse", RPCArg::Type::BOOL, /* default */ "false", "Keep track of coin reuse, and treat dirty and clean coins differently with privacy considerations in mind."},
             {"descriptors", RPCArg::Type::BOOL, /* default */ "false", "Create a native descriptor wallet. The wallet will use descriptors internally to handle address creation"},
+            {"options", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED_NAMED_ARG, "",
+                {
+                    {"prune_lock", RPCArg::Type::BOOL, /* default */ "false", "If enabled, pruning will be paused until the wallet is loaded and synced."},
+                },
+                "options"},
         },
         RPCResult{
             RPCResult::Type::OBJ, "", "",
@@ -2612,6 +2635,15 @@ static UniValue createwallet(const JSONRPCRequest& request)
             + HelpExampleRpc("createwallet", "\"testwallet\"")
         },
     }.Check(request);
+
+    UniValue options = request.params[6];
+    if (!options.isNull()) {
+        RPCTypeCheckObj(options,
+            {
+                {"prune_lock", UniValueType(UniValue::VBOOL)},
+            },
+            /*allow_null=*/ true, /*strict=*/ true);
+    }
 
     WalletContext& context = EnsureWalletContext(request.context);
     uint64_t flags = 0;
@@ -2652,6 +2684,10 @@ static UniValue createwallet(const JSONRPCRequest& request)
         case WalletCreationStatus::SUCCESS:
             break;
         // no default case, so the compiler can warn about missing cases
+    }
+
+    if (!options["prune_lock"].isNull()) {
+        wallet->SetPruneLockEnabled(options["prune_lock"].get_bool());
     }
 
     UniValue obj(UniValue::VOBJ);
