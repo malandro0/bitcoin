@@ -110,6 +110,8 @@ public:
     /** Open the database if it is not already opened. */
     virtual void Open(const char* mode) = 0;
 
+    virtual std::string GetUniqueId() const = 0;
+
     //! Counts the number of active database users to be sure that the database is not closed while someone is using it
     std::atomic<int> m_refcount{0};
     /** Indicate the a new database user has began using the database. Increments m_refcount */

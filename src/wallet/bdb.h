@@ -35,6 +35,7 @@ static const unsigned int DEFAULT_WALLET_DBLOGSIZE = 100;
 static const bool DEFAULT_WALLET_PRIVDB = true;
 
 struct WalletDatabaseFileId {
+    // NOTE: If the raw format of this struct ever changes, ensure that GetUniqueId doesn't
     u_int8_t value[DB_FILE_ID_LEN];
     bool operator==(const WalletDatabaseFileId& rhs) const;
 };
@@ -120,6 +121,8 @@ public:
     /** Open the database if it is not already opened.
      *  Dummy function, doesn't do anything right now, but is needed for class abstraction */
     void Open(const char* mode) override;
+
+    std::string GetUniqueId() const override;
 
     /** Rewrite the entire database on disk, with the exception of key pszSkip if non-zero
      */
