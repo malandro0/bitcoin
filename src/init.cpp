@@ -1075,7 +1075,14 @@ bool AppInitParameterInteraction()
     fCheckBlockIndex = gArgs.GetBoolArg("-checkblockindex", chainparams.DefaultConsistencyChecks());
     fCheckpointsEnabled = gArgs.GetBoolArg("-checkpoints", DEFAULT_CHECKPOINTS_ENABLED);
 
-    hashAssumeValid = uint256S(gArgs.GetArg("-assumevalid", chainparams.GetConsensus().defaultAssumeValid.GetHex()));
+    {
+        auto consensusparams_assumevalid = chainparams.GetConsensus().defaultAssumeValid.GetHex();
+        std::string assumevalid_opt = gArgs.GetArg("-assumevalid", consensusparams_assumevalid);
+        if (assumevalid_opt == "1") {
+            assumevalid_opt = consensusparams_assumevalid;
+        }
+        hashAssumeValid = uint256S(assumevalid_opt);
+    }
     if (!hashAssumeValid.IsNull())
         LogPrintf("Assuming ancestors of block %s have valid signatures.\n", hashAssumeValid.GetHex());
     else
