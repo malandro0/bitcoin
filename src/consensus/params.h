@@ -29,6 +29,8 @@ struct BIP9Deployment {
     int startheight;
     /** Timeout/expiry block height for the deployment attempt. Must be a retarget block. */
     int timeoutheight;
+    /** If true, final period before timeout will transition to MUST_SIGNAL. */
+    bool lockinontimeout{false};
     /** If lock in occurs, delay activation until at least this block
      *  height.  Note that activation will only occur on a retarget
      *  boundary.
