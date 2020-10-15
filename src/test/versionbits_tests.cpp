@@ -20,6 +20,7 @@ static const std::string StateName(ThresholdState state)
     switch (state) {
     case ThresholdState::DEFINED:   return "DEFINED";
     case ThresholdState::STARTED:   return "STARTED";
+    case ThresholdState::MUST_SIGNAL: return "MUST_SIGNAL";
     case ThresholdState::LOCKED_IN: return "LOCKED_IN";
     case ThresholdState::ACTIVE:    return "ACTIVE";
     case ThresholdState::FAILED:    return "FAILED";
@@ -54,9 +55,12 @@ public:
 class TestHeightActivationConditionChecker : public TestDelayedActivationConditionChecker
 {
 public:
+    bool m_lockinontimeout{false};
+
     int64_t BeginTime(const Consensus::Params& params) const override { return 2000; }
     int64_t EndTime(const Consensus::Params& params) const override { return 6000; }
     bool UseMTP(const Consensus::Params& params) const override { return false; }
+    bool LockinOnTimeout(const Consensus::Params& params) const override { return m_lockinontimeout; }
 };
 
 class TestAlwaysActiveConditionChecker : public TestConditionChecker
@@ -126,6 +130,13 @@ public:
         return *this;
     }
 
+    VersionBitsTester& SetLockinOnTimeout() {
+        for (unsigned int  i = 0; i < CHECKERS; i++) {
+            checker_height[i].m_lockinontimeout = true;
+        }
+        return *this;
+    }
+
     VersionBitsTester& Mine(unsigned int height, int32_t nTime, int32_t nVersion) {
         while (vpblock.size() < height) {
             CBlockIndex* pindex = new CBlockIndex();
@@ -141,10 +152,20 @@ public:
 
     VersionBitsTester& TestStateSinceHeight(int height)
     {
-        return TestStateSinceHeight(height, height);
+        return TestStateSinceHeight(height, height, height);
     }
 
     VersionBitsTester& TestStateSinceHeight(int height, int height_delayed)
+    {
+        return TestStateSinceHeight(height, height_delayed, height_delayed);
+    }
+
+    VersionBitsTester& TestStateSinceHeightMS(int height, int height_height)
+    {
+        return TestStateSinceHeight(height, height, height_height);
+    }
+
+    VersionBitsTester& TestStateSinceHeight(int height, int height_delayed, int height_height)
     {
         const CBlockIndex* tip = Tip();
         for (int i = 0; i < CHECKERS; i++) {
@@ -152,7 +173,7 @@ public:
                 BOOST_CHECK_MESSAGE(checker[i].GetStateSinceHeightFor(tip) == height, strprintf("Test %i for StateSinceHeight", num));
                 BOOST_CHECK_MESSAGE(checker_delayed[i].GetStateSinceHeightFor(tip) == height_delayed, strprintf("Test %i for StateSinceHeight (delayed)", num));
                 if (!m_skip_height) {
-                    BOOST_CHECK_MESSAGE(checker_height[i].GetStateSinceHeightFor(tip) == height_delayed, strprintf("Test %i for StateSinceHeight (height-based)", num));
+                    BOOST_CHECK_MESSAGE(checker_height[i].GetStateSinceHeightFor(tip) == height_height, strprintf("Test %i for StateSinceHeight (height-based)", num));
                 }
                 BOOST_CHECK_MESSAGE(checker_always[i].GetStateSinceHeightFor(tip) == 0, strprintf("Test %i for StateSinceHeight (always active)", num));
                 BOOST_CHECK_MESSAGE(checker_never[i].GetStateSinceHeightFor(tip) == 0, strprintf("Test %i for StateSinceHeight (never active)", num));
@@ -164,10 +185,10 @@ public:
 
     VersionBitsTester& TestState(ThresholdState exp)
     {
-        return TestState(exp, exp);
+        return TestState(exp, exp, exp);
     }
 
-    VersionBitsTester& TestState(ThresholdState exp, ThresholdState exp_delayed)
+    VersionBitsTester& TestState(ThresholdState exp, ThresholdState exp_delayed, ThresholdState exp_height)
     {
         if (exp != exp_delayed) {
             // only expected differences are that delayed stays in locked_in longer
@@ -189,7 +210,7 @@ public:
                 BOOST_CHECK_MESSAGE(got == exp, strprintf("Test %i for %s height %d (got %s)", num, StateName(exp), height, StateName(got)));
                 BOOST_CHECK_MESSAGE(got_delayed == exp_delayed, strprintf("Test %i for %s height %d (got %s; delayed case)", num, StateName(exp_delayed), height, StateName(got_delayed)));
                 if (!m_skip_height) {
-                    BOOST_CHECK_MESSAGE(got_height == exp_delayed, strprintf("Test %i for %s height %d (got %s; height-based)", num, StateName(exp_delayed), height, StateName(got_height)));
+                    BOOST_CHECK_MESSAGE(got_height == exp_height, strprintf("Test %i for %s height %d (got %s; height-based)", num, StateName(exp_height), height, StateName(got_height)));
                 }
                 BOOST_CHECK_MESSAGE(got_always == ThresholdState::ACTIVE, strprintf("Test %i for ACTIVE height %d (got %s; always active case)", num, height, StateName(got_always)));
                 BOOST_CHECK_MESSAGE(got_never == ThresholdState::FAILED, strprintf("Test %i for FAILED height %d (got %s; never active case)", num, height, StateName(got_never)));
@@ -201,12 +222,13 @@ public:
 
     VersionBitsTester& TestDefined() { return TestState(ThresholdState::DEFINED); }
     VersionBitsTester& TestStarted() { return TestState(ThresholdState::STARTED); }
+    VersionBitsTester& TestMustSignal() { return TestState(ThresholdState::STARTED, ThresholdState::STARTED, ThresholdState::MUST_SIGNAL); }
     VersionBitsTester& TestLockedIn() { return TestState(ThresholdState::LOCKED_IN); }
     VersionBitsTester& TestActive() { return TestState(ThresholdState::ACTIVE); }
     VersionBitsTester& TestFailed() { return TestState(ThresholdState::FAILED); }
 
     // non-delayed should be active; delayed should still be locked in
-    VersionBitsTester& TestActiveDelayed() { return TestState(ThresholdState::ACTIVE, ThresholdState::LOCKED_IN); }
+    VersionBitsTester& TestActiveDelayed() { return TestState(ThresholdState::ACTIVE, ThresholdState::LOCKED_IN, ThresholdState::LOCKED_IN); }
 
     CBlockIndex* Tip() { return vpblock.empty() ? nullptr : vpblock.back(); }
 };
@@ -282,6 +304,22 @@ BOOST_AUTO_TEST_CASE(versionbits_test)
                            .Mine(6000, TestTime(20000), 0).TestFailed().TestStateSinceHeight(6000)
                            .Mine(7000, TestTime(20000), 0x100).TestFailed().TestStateSinceHeight(6000)
                            .Mine(24000, TestTime(20000), 0x100).TestFailed().TestStateSinceHeight(6000) // stay in FAILED no matter how much we signal
+
+        // DEFINED -> STARTED -> MUST_SIGNAL -> LOCKEDIN -> ACTIVE
+                           .Reset().TestDefined()
+                           .SetLockinOnTimeout()
+                           .Mine(1, TestTime(1), 0).TestDefined().TestStateSinceHeight(0)
+                           .Mine(1000, TestTime(10000) - 1, 0x101).TestDefined().TestStateSinceHeight(0) // One second more and it would be defined
+                           .Mine(2000, TestTime(10000), 0x101).TestStarted().TestStateSinceHeight(2000) // So that's what happens the next period
+                           .Mine(4999, TestTime(19999), 0x200).TestStarted().TestStateSinceHeight(2000)
+                           .Mine(5000, TestTime(19999), 0).TestMustSignal().TestStateSinceHeightMS(2000, 5000)
+                           .Mine(5999, TestTime(19999), 0x101).TestMustSignal().TestStateSinceHeightMS(2000, 5000)
+                           .Mine(6000, TestTime(29999), 0x200).TestLockedIn().TestStateSinceHeight(6000)
+                           .Mine(6999, TestTime(30001), 0).TestLockedIn().TestStateSinceHeight(6000)
+                           .Mine(7000, TestTime(30002), 0).TestActiveDelayed().TestStateSinceHeight(7000, 6000) // delayed will not become active until height=15000
+                           .Mine(14333, TestTime(30003), 0).TestActiveDelayed().TestStateSinceHeight(7000, 6000)
+                           .Mine(15000, TestTime(40000), 0).TestActive().TestStateSinceHeight(7000, 15000)
+                           .Mine(24000, TestTime(40000), 0).TestActive().TestStateSinceHeight(7000, 15000)
         ;
     }
 }
@@ -444,6 +482,19 @@ static void check_computeblockversion(const Consensus::Params& params, Consensus
 
         // FAILED is only triggered at the end of a period, so CBV should be setting
         // the bit until the period transition.
+        if (params.vDeployments[dep].lockinontimeout) {
+            // MUST_SIGNAL period (which makes the next LOCKED_IN rather than the final STARTED)
+            for (uint32_t i = 0; i < params.nMinerConfirmationWindow; i++) {
+                lastBlock = firstChain.Mine(nHeight+1, nTime, VERSIONBITS_TOP_BITS | (1<<bit)).Tip();
+                BOOST_CHECK((ComputeBlockVersion(lastBlock, params) & (1<<bit)) != 0);
+                nHeight += 1;
+            }
+            if (min_activation_height > nHeight) {
+                // Make sure we end up at the start of the final LOCKED_IN period if there are multiple
+                nHeight = min_activation_height - params.nMinerConfirmationWindow;
+                firstChain.Mine(nHeight, nTime, VERSIONBITS_LAST_OLD_BLOCK_VERSION).Tip();
+            }
+        }
         for (uint32_t i = 0; i < params.nMinerConfirmationWindow - 1; i++) {
             lastBlock = firstChain.Mine(nHeight+1, nTime, VERSIONBITS_LAST_OLD_BLOCK_VERSION).Tip();
             BOOST_CHECK((ComputeBlockVersion(lastBlock, params) & (1<<bit)) != 0);

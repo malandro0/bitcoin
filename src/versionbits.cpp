@@ -13,6 +13,9 @@ ThresholdState AbstractThresholdConditionChecker::GetStateFor(const CBlockIndex*
     int64_t nTimeStart = BeginTime(params);
     int64_t nTimeTimeout = EndTime(params);
     const bool use_mtp = UseMTP(params);
+    const bool lockinontimeout = LockinOnTimeout(params);
+
+    assert(!(use_mtp && lockinontimeout));
 
     // Check if this deployment is always active.
     if (nTimeStart == Consensus::BIP9Deployment::ALWAYS_ACTIVE) {
@@ -81,9 +84,16 @@ ThresholdState AbstractThresholdConditionChecker::GetStateFor(const CBlockIndex*
                 }
                 if (count >= nThreshold) {
                     stateNext = ThresholdState::LOCKED_IN;
+                } else if (lockinontimeout && compare_time + nPeriod >= nTimeTimeout) {
+                    stateNext = ThresholdState::MUST_SIGNAL;
                 } else if (compare_time >= nTimeTimeout) {
                     stateNext = ThresholdState::FAILED;
                 }
+                break;
+            }
+            case ThresholdState::MUST_SIGNAL: {
+                // Always progresses into LOCKED_IN.
+                stateNext = ThresholdState::LOCKED_IN;
                 break;
             }
             case ThresholdState::LOCKED_IN: {
@@ -182,6 +192,7 @@ protected:
     int64_t BeginTime(const Consensus::Params& params) const override { return params.vDeployments[id].nStartTime; }
     int64_t EndTime(const Consensus::Params& params) const override { return params.vDeployments[id].nTimeout; }
     bool UseMTP(const Consensus::Params& params) const override { return params.vDeployments[id].use_mtp; }
+    bool LockinOnTimeout(const Consensus::Params& params) const override { return params.vDeployments[id].lockinontimeout; }
     int MinActivationHeight(const Consensus::Params& params) const override { return params.vDeployments[id].min_activation_height; }
     int Period(const Consensus::Params& params) const override { return params.nMinerConfirmationWindow; }
     int Threshold(const Consensus::Params& params) const override { return params.nRuleChangeActivationThreshold; }

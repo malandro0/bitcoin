@@ -28,6 +28,7 @@ public:
     const int64_t m_begin;
     const int64_t m_end;
     bool use_mtp{true};
+    bool m_lockinontimeout{false};
     const int m_period;
     const int m_threshold;
     const int m_min_activation_height;
@@ -46,6 +47,7 @@ public:
     int64_t BeginTime(const Consensus::Params& params) const override { return m_begin; }
     int64_t EndTime(const Consensus::Params& params) const override { return m_end; }
     bool UseMTP(const Consensus::Params& params) const override { return use_mtp; }
+    bool LockinOnTimeout(const Consensus::Params& params) const override { return m_lockinontimeout; }
     int Period(const Consensus::Params& params) const override { return m_period; }
     int Threshold(const Consensus::Params& params) const override { return m_threshold; }
     int MinActivationHeight(const Consensus::Params& params) const override { return m_min_activation_height; }
@@ -147,6 +149,7 @@ void test_one_input(const std::vector<uint8_t>& buffer)
     bool use_mtp = true;
     int64_t start_time;
     int64_t timeout;
+    bool lockinontimeout = false;
     if (fuzzed_data_provider.ConsumeBool()) {
         // pick the timestamp to switch based on a block
         // note states will change *after* these blocks because mediantime lags
@@ -165,6 +168,10 @@ void test_one_input(const std::vector<uint8_t>& buffer)
         } else {
             start_time = start_block;
             timeout = end_block;
+            if (threshold < period) {
+                // This fuzzer doesn't let us easily guarantee the signal of the first block in a period, so skip LOT=True when threshold is 100%
+                lockinontimeout = fuzzed_data_provider.ConsumeBool();
+            }
         }
     } else {
         if (fuzzed_data_provider.ConsumeBool()) {
@@ -180,6 +187,7 @@ void test_one_input(const std::vector<uint8_t>& buffer)
 
     TestConditionChecker checker(start_time, timeout, period, threshold, min_activation, bit);
     checker.use_mtp = use_mtp;
+    checker.m_lockinontimeout = lockinontimeout;
 
     // Early exit if the versions don't signal sensibly for the deployment
     if (!checker.Condition(ver_signal)) return;
@@ -238,7 +246,11 @@ void test_one_input(const std::vector<uint8_t>& buffer)
 
     // mine (period-1) blocks and check state
     for (int b = 1; b < period; ++b) {
-        const bool signal = (signalling_mask >> (b % 32)) & 1;
+        bool signal = (signalling_mask >> (b % 32)) & 1;
+        if (exp_state == ThresholdState::MUST_SIGNAL && threshold - blocks_sig >= period - b) {
+            // Further blocks need to signal to be valid
+            signal = true;
+        }
         if (signal) ++blocks_sig;
 
         CBlockIndex* current_block = blocks.mine_block(signal);
@@ -252,8 +264,8 @@ void test_one_input(const std::vector<uint8_t>& buffer)
         assert(state == exp_state);
         assert(since == exp_since);
 
-        // GetStateStatistics may crash when state is not STARTED
-        if (state != ThresholdState::STARTED) continue;
+        // GetStateStatistics may crash when state is not STARTED or MUST_SIGNAL
+        if (state != ThresholdState::STARTED && state != ThresholdState::MUST_SIGNAL) continue;
 
         // check that after mining this block stats change as expected
         const BIP9Stats stats = checker.GetStateStatisticsFor(current_block);
@@ -265,7 +277,7 @@ void test_one_input(const std::vector<uint8_t>& buffer)
         last_stats = stats;
     }
 
-    if (exp_state == ThresholdState::STARTED) {
+    if (exp_state == ThresholdState::STARTED || exp_state == ThresholdState::MUST_SIGNAL) {
         // double check that stats.possible is sane
         if (blocks_sig >= threshold - 1) assert(last_stats.possible);
     }
@@ -316,11 +328,15 @@ void test_one_input(const std::vector<uint8_t>& buffer)
             assert(exp_state == ThresholdState::DEFINED);
         }
         break;
+    case ThresholdState::MUST_SIGNAL:
+        assert(mtp_or_height >= checker.m_end - period);
+        assert(exp_state == ThresholdState::STARTED);
+        break;
     case ThresholdState::LOCKED_IN:
         if (exp_state == ThresholdState::LOCKED_IN) {
             assert(current_block->nHeight + 1 < min_activation);
         } else {
-            assert(exp_state == ThresholdState::STARTED);
+            assert(exp_state == ThresholdState::STARTED || exp_state == ThresholdState::MUST_SIGNAL);
             assert(blocks_sig >= threshold);
         }
         break;

@@ -1222,11 +1222,12 @@ static void BIP9SoftForkDescPushBack(UniValue& softforks, const std::string &nam
     switch (thresholdState) {
     case ThresholdState::DEFINED: bip9.pushKV("status", "defined"); break;
     case ThresholdState::STARTED: bip9.pushKV("status", "started"); break;
+    case ThresholdState::MUST_SIGNAL: bip9.pushKV("status", "must_signal"); break;
     case ThresholdState::LOCKED_IN: bip9.pushKV("status", "locked_in"); break;
     case ThresholdState::ACTIVE: bip9.pushKV("status", "active"); break;
     case ThresholdState::FAILED: bip9.pushKV("status", "failed"); break;
     }
-    const bool has_signal = (ThresholdState::STARTED == thresholdState || ThresholdState::LOCKED_IN == thresholdState);
+    const bool has_signal = (ThresholdState::STARTED == thresholdState || ThresholdState::MUST_SIGNAL == thresholdState || ThresholdState::LOCKED_IN == thresholdState);
     if (has_signal) {
         bip9.pushKV("bit", consensusParams.vDeployments[id].bit);
     }
@@ -1236,6 +1237,7 @@ static void BIP9SoftForkDescPushBack(UniValue& softforks, const std::string &nam
     } else {
         bip9.pushKV("startheight", consensusParams.vDeployments[id].nStartTime);
         bip9.pushKV("timeoutheight", consensusParams.vDeployments[id].nTimeout);
+        bip9.pushKV("lockinontimeout", consensusParams.vDeployments[id].lockinontimeout);
     }
     int64_t since_height = VersionBitsTipStateSinceHeight(consensusParams, id);
     bip9.pushKV("since", since_height);
@@ -1298,26 +1300,27 @@ RPCHelpMan getblockchaininfo()
                                 {RPCResult::Type::STR, "type", "one of \"buried\", \"bip8\", or \"bip9\""},
                                 {RPCResult::Type::OBJ, "bip8", "status of BIP 8 softforks (only for \"bip8\" type)",
                                 {
-                                    {RPCResult::Type::STR, "status", "one of \"defined\", \"started\", \"locked_in\", \"active\", \"failed\""},
-                                    {RPCResult::Type::NUM, "bit", "the bit (0-28) in the block version field used to signal this softfork (only for \"started\" and \"locked_in\" status)"},
+                                    {RPCResult::Type::STR, "status", "one of \"defined\", \"started\", \"must_signal\", \"locked_in\", \"active\", \"failed\""},
+                                    {RPCResult::Type::NUM, "bit", "the bit (0-28) in the block version field used to signal this softfork (only for \"started\", \"must_signal\", and \"locked_in\" status)"},
                                     {RPCResult::Type::NUM, "startheight", "the minimum height of a block at which the bit gains its meaning"},
                                     {RPCResult::Type::NUM, "timeoutheight", "the height of a block at which the deployment is considered failed if not yet locked in"},
+                                    {RPCResult::Type::BOOL, "lockinontimeout", "true if the period before timeoutheight transitions to must_signal"},
                                     {RPCResult::Type::NUM, "since", "height of the first block to which the status applies"},
                                     {RPCResult::Type::NUM, "min_activation_height", "minimum height of blocks for which the rules may be enforced"},
-                                    {RPCResult::Type::OBJ, "statistics", "numeric statistics about signalling for a softfork (only for \"started\" and \"locked_in\" status)",
+                                    {RPCResult::Type::OBJ, "statistics", "numeric statistics about signalling for a softfork (only for \"started\", \"must_signal\", and \"locked_in\" status)",
                                     {
                                         {RPCResult::Type::NUM, "period", "the length in blocks of the signalling period"},
-                                        {RPCResult::Type::NUM, "threshold", "the number of blocks with the version bit set required to activate the feature (only for \"started\" status)"},
+                                        {RPCResult::Type::NUM, "threshold", "the number of blocks with the version bit set required to activate the feature (only for \"started\" and \"must_signal\" status)"},
                                         {RPCResult::Type::NUM, "elapsed", "the number of blocks elapsed since the beginning of the current period"},
                                         {RPCResult::Type::NUM, "count", "the number of blocks with the version bit set in the current period"},
-                                        {RPCResult::Type::BOOL, "possible", "returns false if there are not enough blocks left in this period to pass activation threshold (only for \"started\" status)"},
+                                        {RPCResult::Type::BOOL, "possible", "returns false if there are not enough blocks left in this period to pass activation threshold (only for \"started\" and \"must_signal\" status)"},
                                     }},
                                 }},
                                 {RPCResult::Type::OBJ, "bip9", "status of bip9 softforks (only for \"bip9\" type)",
                                 {
                                     {RPCResult::Type::NUM_TIME, "start_time", "the minimum median time past of a block at which the bit gains its meaning"},
                                     {RPCResult::Type::NUM_TIME, "timeout", "the median time past of a block at which the deployment is considered failed if not yet locked in"},
-                                    {RPCResult::Type::ELISION, "", "Same as \"bip8\" excluding \"startheight\" and \"timeoutheight\""},
+                                    {RPCResult::Type::ELISION, "", "Same as \"bip8\" excluding \"startheight\", \"timeoutheight\", and \"lockinontimeout\""},
                                 }},
                                 {RPCResult::Type::NUM, "height", "height of the first block which the rules are or will be enforced (only for softforks with \"active\" status)"},
                                 {RPCResult::Type::BOOL, "active", "true if the rules are enforced for the mempool and the next block"},
