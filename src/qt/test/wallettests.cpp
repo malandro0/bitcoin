@@ -194,7 +194,7 @@ void TestGUI(interfaces::Node& node)
     OptionsModel optionsModel(node);
     bilingual_str error;
     QVERIFY(optionsModel.Init(error));
-    ClientModel clientModel(node, &optionsModel);
+    ClientModel clientModel(node, &optionsModel, *platformStyle);
     WalletContext& context = *node.walletLoader().context();
     AddWallet(context, wallet);
     WalletModel walletModel(interfaces::MakeWallet(context, wallet), clientModel, platformStyle.get());
