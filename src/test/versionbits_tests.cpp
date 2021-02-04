@@ -418,7 +418,7 @@ BOOST_AUTO_TEST_CASE(versionbits_computeblockversion)
         ArgsManager args;
         const auto period = CreateChainParams(args, chain_name)->GetConsensus().nMinerConfirmationWindow;
         for (int i = 0; i < (int)Consensus::MAX_VERSION_BITS_DEPLOYMENTS; ++i) {
-            args.ForceSetArg("-vbparams", strprintf("%s:@%s:@%s", VersionBitsDeploymentInfo[i].name, period, period * 3));
+            args.ForceSetArg("-vbparams", strprintf("%s:@%s:@%s:0", VersionBitsDeploymentInfo[i].name, period, period * 3));
             const auto chainParams = CreateChainParams(args, chain_name);
             check_computeblockversion(chainParams->GetConsensus(), static_cast<Consensus::DeploymentPos>(i));
         }
@@ -428,7 +428,7 @@ BOOST_AUTO_TEST_CASE(versionbits_computeblockversion)
         // Use regtest/testdummy to ensure we always exercise some
         // deployment that's not always/never active
         ArgsManager args;
-        args.ForceSetArg("-vbparams", "testdummy:@144:@432");
+        args.ForceSetArg("-vbparams", "testdummy:@144:@432:0");
         const auto chainParams = CreateChainParams(args, CBaseChainParams::REGTEST);
         check_computeblockversion(chainParams->GetConsensus(), Consensus::DEPLOYMENT_TESTDUMMY);
     }
@@ -438,7 +438,7 @@ BOOST_AUTO_TEST_CASE(versionbits_computeblockversion)
         // min_activation_height test, even if we're not using that in a
         // live deployment
         ArgsManager args;
-        args.ForceSetArg("-vbparams", "testdummy:@144:@432:864");
+        args.ForceSetArg("-vbparams", "testdummy:@144:@432:@864:0");
         const auto chainParams = CreateChainParams(args, CBaseChainParams::REGTEST);
         check_computeblockversion(chainParams->GetConsensus(), Consensus::DEPLOYMENT_TESTDUMMY);
     }
