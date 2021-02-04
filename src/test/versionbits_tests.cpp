@@ -571,9 +571,12 @@ BOOST_AUTO_TEST_CASE(versionbits_computeblockversion)
         for (int i = 0; i < (int)Consensus::MAX_VERSION_BITS_DEPLOYMENTS; ++i) {
             for (const auto& vbparam_startend : {strprintf("@%s:@%s", period, period * 4), std::string("1199145601:1230767999")}) {
             for (const auto& vbparam_minact : {strprintf(":%s", period * 8), std::string()}) {
-                args.ForceSetArg("-vbparams", strprintf("%s:%s%s", VersionBitsDeploymentInfo[i].name, vbparam_startend, vbparam_minact));
+            for (const auto& vbparam_lot : {std::string{":0"}, (vbparam_startend.front() == '@') ? std::string{":1"} : std::string{}}) {
+                auto vbparam = strprintf("%s:%s%s%s", VersionBitsDeploymentInfo[i].name, vbparam_startend, vbparam_minact, vbparam_lot);
+                args.ForceSetArg("-vbparams", vbparam);
                 const auto chainParams = CreateChainParams(args, chain_name);
                 check_computeblockversion(chainParams->GetConsensus(), static_cast<Consensus::DeploymentPos>(i));
+            }
             }
             }
         }
