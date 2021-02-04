@@ -14,9 +14,9 @@ class Bip8Test(BitcoinTestFramework):
         # Node 1 has a regular activation window
         # Node 2 uses speedy trial.
         self.extra_args = [
-            ['-vbparams=testdummy:@1:@1'],
-            ['-vbparams=testdummy:@144:@432'],
-            ['-vbparams=testdummy:@144:@288:@576'],
+            ['-vbparams=testdummy:@1:@1:0'],
+            ['-vbparams=testdummy:@144:@432:0'],
+            ['-vbparams=testdummy:@144:@288:@576:0'],
         ]
 
     def run_test(self):
