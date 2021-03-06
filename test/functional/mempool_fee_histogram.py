@@ -147,6 +147,8 @@ class MempoolFeeHistogramTest(BitcoinTestFramework):
                 assert_equal(bin['count'], 0)
             assert_greater_than_or_equal(bin['fees'], 0)
             assert_greater_than_or_equal(bin['size'], 0)
+            if bin['to'] is not None:
+                assert_greater_than_or_equal(bin['to'], bin['from'])
             total_fees += bin['fees']
 
             if bin['count'] == 0:
