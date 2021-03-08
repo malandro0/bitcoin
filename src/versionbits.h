@@ -57,6 +57,7 @@ protected:
     virtual bool Condition(const CBlockIndex* pindex, const Consensus::Params& params) const =0;
     virtual int64_t StartHeight(const Consensus::Params& params) const =0;
     virtual int64_t TimeoutHeight(const Consensus::Params& params) const =0;
+    virtual int64_t MinActivationHeight(const Consensus::Params& params) const { return 0; }
     virtual int Period(const Consensus::Params& params) const =0;
     virtual int Threshold(const Consensus::Params& params) const =0;
 

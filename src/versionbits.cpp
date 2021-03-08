@@ -11,6 +11,7 @@ ThresholdState AbstractThresholdConditionChecker::GetStateFor(const CBlockIndex*
     int nThreshold = Threshold(params);
     int64_t height_start = StartHeight(params);
     int64_t height_timeout = TimeoutHeight(params);
+    int64_t min_activation_height = MinActivationHeight(params);
 
     // Check if this deployment is never active.
     if (height_start == Consensus::BIP9Deployment::NEVER_ACTIVE && height_timeout == Consensus::BIP9Deployment::NEVER_ACTIVE ) {
@@ -86,8 +87,10 @@ ThresholdState AbstractThresholdConditionChecker::GetStateFor(const CBlockIndex*
                 break;
             }
             case ThresholdState::LOCKED_IN: {
-                // Always progresses into ACTIVE.
-                stateNext = ThresholdState::ACTIVE;
+                // Only progress into ACTIVE if minimum activation height has been reached
+                if (height >= min_activation_height) {
+                    stateNext = ThresholdState::ACTIVE;
+                }
                 break;
             }
             case ThresholdState::FAILED:
@@ -178,6 +181,7 @@ private:
 protected:
     int64_t StartHeight(const Consensus::Params& params) const override { return params.vDeployments[id].startheight; }
     int64_t TimeoutHeight(const Consensus::Params& params) const override { return params.vDeployments[id].timeoutheight; }
+    int64_t MinActivationHeight(const Consensus::Params& params) const override { return params.vDeployments[id].m_min_activation_height; }
     int Period(const Consensus::Params& params) const override { return params.nMinerConfirmationWindow; }
     int Threshold(const Consensus::Params& params) const override { return params.nRuleChangeActivationThreshold; }
 
