@@ -152,14 +152,13 @@ class BlockchainTest(BitcoinTestFramework):
             'taproot': {
                 'type': 'bip8',
                 'bip8': {
-                    'status': 'active',
-                    'startheight': -1,
-                    'timeoutheight': 0x7fffffff,
+                    'status': 'defined',
+                    'startheight': 576,
+                    'timeoutheight': 1584,
                     'lockinontimeout': False,
                     'since': 0
                 },
-                'height': 0,
-                'active': True
+                'active': False
             }
         })
 

@@ -396,8 +396,9 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].startheight = 144;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].timeoutheight = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].bit = 2;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].startheight = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].timeoutheight = Consensus::BIP9Deployment::NO_TIMEOUT;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].startheight = 576;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].timeoutheight = 1584;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].m_min_activation_height = 2592; // No minimum activation height
 
         consensus.nMinimumChainWork = uint256{};
         consensus.defaultAssumeValid = uint256{};
