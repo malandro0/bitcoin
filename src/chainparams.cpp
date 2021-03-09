@@ -479,6 +479,15 @@ bool CheckVBitsParams(std::string& error, const Consensus::Params& consensus, co
         return false;
     }
 
+    if (deployment.min_activation_height < 0) {
+        error = strprintf("Invalid minimum activation height (%d), cannot be negative", deployment.min_activation_height);
+        return false;
+    }
+    if (deployment.min_activation_height % consensus.nMinerConfirmationWindow != 0) {
+        error = strprintf("Invalid minimum activation height (%d), must be a multiple of %d", deployment.min_activation_height, consensus.nMinerConfirmationWindow);
+        return false;
+    }
+
     // Remaining checks only applicable to height-based start/timeout
     if (deployment.use_mtp) return true;
 
@@ -545,8 +554,11 @@ void CRegTestParams::UpdateActivationParametersFromArgs(const ArgsManager& args)
         if (!ParseInt64(vDeploymentParams[2], &deployment->nTimeout)) {
             throw std::runtime_error(strprintf("Invalid end (%s)", literal_deployment_params[2]));
         }
-        deployment->min_activation_height = 0;
-        if (vDeploymentParams.size() >= 4 && !ParseInt32(vDeploymentParams[3], &deployment->min_activation_height)) {
+        std::string min_activation_height_opt = (vDeploymentParams.size() >= 4) ? vDeploymentParams[3] : std::string{"0"};
+        if (min_activation_height_opt.substr(0, 1) == "@") {
+            min_activation_height_opt.erase(0, 1);
+        }
+        if (!ParseInt32(min_activation_height_opt, &deployment->min_activation_height)) {
             throw std::runtime_error(strprintf("Invalid min_activation_height (%s)", vDeploymentParams[3]));
         }
         std::string error;
