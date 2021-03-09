@@ -468,7 +468,7 @@ public:
     void UpdateActivationParametersFromArgs(const ArgsManager& args);
 };
 
-bool CheckVBitsHeights(std::string& error, const Consensus::Params& consensus, int startheight, int timeoutheight)
+bool CheckVBitsHeights(std::string& error, const Consensus::Params& consensus, int startheight, int timeoutheight, int min_activation_height)
 {
     // Special always or never active cases
     if (startheight == Consensus::BIP9Deployment::NEVER_ACTIVE
@@ -491,6 +491,14 @@ bool CheckVBitsHeights(std::string& error, const Consensus::Params& consensus, i
     }
     if (timeoutheight != Consensus::BIP9Deployment::NO_TIMEOUT && timeoutheight % consensus.nMinerConfirmationWindow != 0) {
         error = strprintf("Invalid timeoutheight (%d), must be a multiple of %d", timeoutheight, consensus.nMinerConfirmationWindow);
+        return false;
+    }
+    if (min_activation_height < 0) {
+        error = strprintf("Invalid minimum activation height (%d), cannot be negative", min_activation_height);
+        return false;
+    }
+    if (min_activation_height % consensus.nMinerConfirmationWindow != 0) {
+        error = strprintf("Invalid minimum activation height (%d), must be a multiple of %d", min_activation_height, consensus.nMinerConfirmationWindow);
         return false;
     }
     if (timeoutheight < startheight + (2 * (int)consensus.nMinerConfirmationWindow)) {
@@ -519,7 +527,7 @@ void CRegTestParams::UpdateActivationParametersFromArgs(const ArgsManager& args)
         std::vector<std::string> vDeploymentParams;
         boost::split(vDeploymentParams, strDeployment, boost::is_any_of(":"));
         if (vDeploymentParams.size() < 3 || 4 < vDeploymentParams.size()) {
-            throw std::runtime_error("Version bits parameters malformed, expecting deployment:@startheight:@timeoutheight[:min_activation_height]");
+            throw std::runtime_error("Version bits parameters malformed, expecting deployment:@startheight:@timeoutheight[:@min_activation_height]");
         }
         int32_t startheight = 0, timeoutheight = 0;
         int min_activation_height = 0;
@@ -529,11 +537,15 @@ void CRegTestParams::UpdateActivationParametersFromArgs(const ArgsManager& args)
         if (vDeploymentParams[2].empty() || vDeploymentParams[2].substr(0, 1) != "@" || !ParseInt32(vDeploymentParams[2].substr(1), &timeoutheight)) {
             throw std::runtime_error(strprintf("Invalid timeoutheight (%s)", vDeploymentParams[2]));
         }
-        if (vDeploymentParams.size() >= 4 && !ParseInt32(vDeploymentParams[3], &min_activation_height)) {
+        std::string min_activation_height_opt = (vDeploymentParams.size() >= 4) ? vDeploymentParams[3] : std::string{"0"};
+        if (min_activation_height_opt.substr(0, 1) == "@") {
+            min_activation_height_opt = min_activation_height_opt.substr(1);
+        }
+        if (!ParseInt32(min_activation_height_opt, &min_activation_height)) {
             throw std::runtime_error(strprintf("Invalid min_activation_height (%s)", vDeploymentParams[3]));
         }
         std::string error;
-        if (!CheckVBitsHeights(error, consensus, startheight, timeoutheight)) {
+        if (!CheckVBitsHeights(error, consensus, startheight, timeoutheight, min_activation_height)) {
             throw std::runtime_error(error);
         }
         bool found = false;

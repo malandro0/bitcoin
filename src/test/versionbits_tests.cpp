@@ -243,7 +243,7 @@ BOOST_AUTO_TEST_CASE(versionbits_sanity)
         BOOST_CHECK_EQUAL(bitmask & ~(uint32_t)VERSIONBITS_TOP_MASK, bitmask);
 
         std::string error;
-        BOOST_CHECK_MESSAGE(CheckVBitsHeights(error, mainnetParams, mainnetParams.vDeployments[i].startheight, mainnetParams.vDeployments[i].timeoutheight), error);
+        BOOST_CHECK_MESSAGE(CheckVBitsHeights(error, mainnetParams, mainnetParams.vDeployments[i].startheight, mainnetParams.vDeployments[i].timeoutheight, mainnetParams.vDeployments[i].min_activation_height), error);
 
         // Check min_activation_height is on a retarget boundary
         BOOST_CHECK_EQUAL(mainnetParams.vDeployments[i].min_activation_height % mainnetParams.nMinerConfirmationWindow, 0U);
