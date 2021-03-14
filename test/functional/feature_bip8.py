@@ -14,15 +14,15 @@ class Bip8Test(BitcoinTestFramework):
         # Node 1 has a regular activation window
         # Node 2 uses speedy trial.
         self.extra_args = [
-            [f'-vbparams=testdummy:@1:@1'],
-            [f'-vbparams=testdummy:@144:@{144 * 3}'],
-            [f'-vbparams=testdummy:@144:@{144 * 2}:@{144 * 4}'],
+            ['-vbparams=testdummy:@1:@1'],
+            ['-vbparams=testdummy:@144:@432'],
+            ['-vbparams=testdummy:@144:@288:@576'],
         ]
 
     def run_test(self):
         self.log.info("Test status at genesis...")
         for i, node in enumerate(self.nodes):
-            self.log.debug(f'Node #{ i }...')
+            self.log.debug('Node #%s...' % (i,))
             info = node.getblockchaininfo()
             assert_equal(info['blocks'], 0)
             assert_equal(info["softforks"]["testdummy"]["bip8"]["status"], "defined")
@@ -38,7 +38,7 @@ class Bip8Test(BitcoinTestFramework):
         self.nodes[0].generate(142)
         self.sync_blocks()
         for i, node in enumerate(self.nodes):
-            self.log.debug(f'Node #{ i }...')
+            self.log.debug('Node #%s...' % (i,))
             info = node.getblockchaininfo()
             assert_equal(info['blocks'], 142)
             assert_equal(info["softforks"]["testdummy"]["bip8"]["status"], "defined")
@@ -47,36 +47,36 @@ class Bip8Test(BitcoinTestFramework):
         self.nodes[0].generate(1)
         self.sync_blocks()
         for i, node in enumerate(self.nodes):
-            self.log.debug(f'Node #{ i }...')
+            self.log.debug('Node #%s...' % (i,))
             info = node.getblockchaininfo()
             assert_equal(info['blocks'], 143)
             status = info["softforks"]["testdummy"]["bip8"]["status"]
             assert_equal(status, "failed" if i == 0 else "started")
 
         height = 144 * 2 - 1
-        self.log.info(f"Test status at height { height } when not signalling...")
+        self.log.info("Test status at height %s when not signalling..." % (height,))
         self.nodes[0].generate(144)
         self.sync_blocks()
         for i, node in enumerate(self.nodes):
-            self.log.debug(f'Node #{ i }...')
+            self.log.debug('Node #%s...' % (i,))
             info = node.getblockchaininfo()
             assert_equal(info['blocks'], height)
             status = info["softforks"]["testdummy"]["bip8"]["status"]
             assert_equal(status, "started" if i == 1 else "failed")
 
         height = 144 * 3 - 1
-        self.log.info(f"Test status at height { height } when not signalling...")
+        self.log.info("Test status at height %s when not signalling..." % (height,))
         self.nodes[0].generate(144)
         self.sync_blocks()
         for i, node in enumerate(self.nodes):
-            self.log.debug(f'Node #{ i }...')
+            self.log.debug('Node #%s...' % (i,))
             info = node.getblockchaininfo()
             assert_equal(info['blocks'], height)
             status = info["softforks"]["testdummy"]["bip8"]["status"]
             assert_equal(status, "failed")
 
         height = 144 - 1
-        self.log.info(f"Roll back to { height }...")
+        self.log.info("Roll back to %s..." % (height,))
         old_block = self.nodes[0].getblockhash(height + 1)
         for node in self.nodes:
             node.invalidateblock(old_block)
@@ -84,7 +84,7 @@ class Bip8Test(BitcoinTestFramework):
             assert_equal(info['blocks'], height)
 
         height = 144 * 2 - 1
-        self.log.info(f"Test status at height { height } when signalling...")
+        self.log.info("Test status at height %s when signalling..." % (height,))
         # The new branch has unique block hashes, because of the signalling and
         # because generate uses a deterministic address that depends on the node
         # index.
@@ -92,31 +92,31 @@ class Bip8Test(BitcoinTestFramework):
         self.sync_blocks()
 
         for i, node in enumerate(self.nodes):
-            self.log.debug(f'Node #{ i }...')
+            self.log.debug('Node #%s...' % (i,))
             info = node.getblockchaininfo()
             assert_equal(info['blocks'], height)
             status = info["softforks"]["testdummy"]["bip8"]["status"]
             assert_equal(status, "failed" if i == 0 else "locked_in")
 
         height = 144 * 3 - 1
-        self.log.info(f"Test status at height { height } when signalling...")
+        self.log.info("Test status at height %s when signalling..." % (height,))
         self.nodes[2].generate(144)
         self.sync_blocks()
 
         for i, node in enumerate(self.nodes):
-            self.log.debug(f'Node #{ i }...')
+            self.log.debug('Node #%s...' % (i,))
             info = node.getblockchaininfo()
             assert_equal(info['blocks'], height)
             status = info["softforks"]["testdummy"]["bip8"]["status"]
             assert_equal(status, "failed" if i == 0 else "active" if i == 1 else "locked_in")
 
         height = 144 * 4 - 1
-        self.log.info(f"Test status at height { height } when signalling...")
+        self.log.info("Test status at height %s when signalling..." % (height,))
         self.nodes[2].generate(144)
         self.sync_blocks()
 
         for i, node in enumerate(self.nodes):
-            self.log.debug(f'Node #{ i }...')
+            self.log.debug('Node #%s...' % (i,))
             info = node.getblockchaininfo()
             assert_equal(info['blocks'], height)
             status = info["softforks"]["testdummy"]["bip8"]["status"]
