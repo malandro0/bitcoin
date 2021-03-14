@@ -477,14 +477,14 @@ void CRegTestParams::UpdateActivationParametersFromArgs(const ArgsManager& args)
         std::vector<std::string> vDeploymentParams;
         boost::split(vDeploymentParams, strDeployment, boost::is_any_of(":"));
         if (vDeploymentParams.size() < 3 || vDeploymentParams.size() > 4) {
-            throw std::runtime_error("Version bits parameters malformed, expecting deployment:@start_height:@timeout_height[:@min_activation_height]");
+            throw std::runtime_error("Version bits parameters malformed, expecting deployment:@startheight:@timeoutheight[:@min_activation_height]");
         }
-        int64_t start_height = 0, timeout_height = 0, min_activation_height = 0;
-        if (vDeploymentParams[1].empty() || vDeploymentParams[1].front() != '@' || !ParseInt64(vDeploymentParams[1].substr(1), &start_height)) {
-            throw std::runtime_error(strprintf("Invalid start_height (%s)", vDeploymentParams[1]));
+        int64_t startheight = 0, timeoutheight = 0, min_activation_height = 0;
+        if (vDeploymentParams[1].empty() || vDeploymentParams[1].front() != '@' || !ParseInt64(vDeploymentParams[1].substr(1), &startheight)) {
+            throw std::runtime_error(strprintf("Invalid startheight (%s)", vDeploymentParams[1]));
         }
-        if (vDeploymentParams[2].empty() || vDeploymentParams[2].front() != '@' || !ParseInt64(vDeploymentParams[2].substr(1), &timeout_height)) {
-            throw std::runtime_error(strprintf("Invalid timeout_height (%s)", vDeploymentParams[2]));
+        if (vDeploymentParams[2].empty() || vDeploymentParams[2].front() != '@' || !ParseInt64(vDeploymentParams[2].substr(1), &timeoutheight)) {
+            throw std::runtime_error(strprintf("Invalid timeoutheight (%s)", vDeploymentParams[2]));
         }
         if (vDeploymentParams.size() == 4 && (vDeploymentParams[3].front() != '@' || !ParseInt64(vDeploymentParams[3].substr(1), &min_activation_height))) {
             throw std::runtime_error(strprintf("Invalid min_activation_height (%s)", vDeploymentParams[3]));
@@ -492,9 +492,9 @@ void CRegTestParams::UpdateActivationParametersFromArgs(const ArgsManager& args)
         bool found = false;
         for (int j=0; j < (int)Consensus::MAX_VERSION_BITS_DEPLOYMENTS; ++j) {
             if (vDeploymentParams[0] == VersionBitsDeploymentInfo[j].name) {
-                UpdateVersionBitsParameters(Consensus::DeploymentPos(j), start_height, timeout_height, min_activation_height);
+                UpdateVersionBitsParameters(Consensus::DeploymentPos(j), startheight, timeoutheight, min_activation_height);
                 found = true;
-                LogPrintf("Setting version bits activation parameters for %s to start_height=%ld, timeout_height=%ld\n", vDeploymentParams[0], start_height, timeout_height);
+                LogPrintf("Setting version bits activation parameters for %s to startheight=%ld, timeoutheight=%ld, min_activation_height=%s\n", vDeploymentParams[0], startheight, timeoutheight, min_activation_height);
                 break;
             }
         }
