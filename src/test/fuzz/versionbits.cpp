@@ -27,6 +27,7 @@ private:
 public:
     const int64_t m_begin;
     const int64_t m_end;
+    bool use_mtp{true};
     const int m_period;
     const int m_threshold;
     const int m_min_activation_height;
@@ -44,6 +45,7 @@ public:
     bool Condition(const CBlockIndex* pindex, const Consensus::Params& params) const override { return Condition(pindex->nVersion); }
     int64_t BeginTime(const Consensus::Params& params) const override { return m_begin; }
     int64_t EndTime(const Consensus::Params& params) const override { return m_end; }
+    bool UseMTP(const Consensus::Params& params) const override { return use_mtp; }
     int Period(const Consensus::Params& params) const override { return m_period; }
     int Threshold(const Consensus::Params& params) const override { return m_threshold; }
     int MinActivationHeight(const Consensus::Params& params) const override { return m_min_activation_height; }
@@ -142,6 +144,7 @@ void test_one_input(const std::vector<uint8_t>& buffer)
 
     bool always_active_test = false;
     bool never_active_test = false;
+    bool use_mtp = true;
     int64_t start_time;
     int64_t timeout;
     if (fuzzed_data_provider.ConsumeBool()) {
@@ -150,12 +153,19 @@ void test_one_input(const std::vector<uint8_t>& buffer)
         int start_block = fuzzed_data_provider.ConsumeIntegralInRange<int>(0, period * (max_periods - 3));
         int end_block = fuzzed_data_provider.ConsumeIntegralInRange<int>(0, period * (max_periods - 3));
 
-        start_time = block_start_time + start_block * interval;
-        timeout = block_start_time + end_block * interval;
+        use_mtp = fuzzed_data_provider.ConsumeBool();
+        
+        if (use_mtp) {
+            start_time = block_start_time + start_block * interval;
+            timeout = block_start_time + end_block * interval;
 
-        // allow for times to not exactly match a block
-        if (fuzzed_data_provider.ConsumeBool()) start_time += interval / 2;
-        if (fuzzed_data_provider.ConsumeBool()) timeout += interval / 2;
+            // allow for times to not exactly match a block
+            if (fuzzed_data_provider.ConsumeBool()) start_time += interval / 2;
+            if (fuzzed_data_provider.ConsumeBool()) timeout += interval / 2;
+        } else {
+            start_time = start_block;
+            timeout = end_block;
+        }
     } else {
         if (fuzzed_data_provider.ConsumeBool()) {
             start_time = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
@@ -169,6 +179,7 @@ void test_one_input(const std::vector<uint8_t>& buffer)
     int min_activation = fuzzed_data_provider.ConsumeIntegralInRange<int>(0, period * max_periods);
 
     TestConditionChecker checker(start_time, timeout, period, threshold, min_activation, bit);
+    checker.use_mtp = use_mtp;
 
     // Early exit if the versions don't signal sensibly for the deployment
     if (!checker.Condition(ver_signal)) return;
@@ -288,17 +299,19 @@ void test_one_input(const std::vector<uint8_t>& buffer)
     }
 
     // state is where everything interesting is
+    int64_t mtp_or_height = use_mtp ? current_block->GetMedianTimePast() : (current_block->nHeight + 1);
     switch (state) {
     case ThresholdState::DEFINED:
         assert(since == 0);
         assert(exp_state == ThresholdState::DEFINED);
-        assert(current_block->GetMedianTimePast() < checker.m_begin);
+        assert(mtp_or_height < checker.m_begin);
         break;
     case ThresholdState::STARTED:
-        assert(current_block->GetMedianTimePast() >= checker.m_begin);
+        assert(mtp_or_height >= checker.m_begin);
+        assert(!never_active_test);
         if (exp_state == ThresholdState::STARTED) {
             assert(blocks_sig < threshold);
-            assert(current_block->GetMedianTimePast() < checker.m_end);
+            assert(mtp_or_height < checker.m_end);
         } else {
             assert(exp_state == ThresholdState::DEFINED);
         }
@@ -316,7 +329,8 @@ void test_one_input(const std::vector<uint8_t>& buffer)
         assert(exp_state == ThresholdState::ACTIVE || exp_state == ThresholdState::LOCKED_IN);
         break;
     case ThresholdState::FAILED:
-        assert(never_active_test || current_block->GetMedianTimePast() >= checker.m_end);
+        assert(mtp_or_height >= checker.m_begin);
+        assert(never_active_test || mtp_or_height >= checker.m_end);
         if (exp_state == ThresholdState::STARTED) {
             assert(blocks_sig < threshold);
         } else {
