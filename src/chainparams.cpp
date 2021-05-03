@@ -462,6 +462,42 @@ public:
     void UpdateActivationParametersFromArgs(const ArgsManager& args);
 };
 
+bool CheckVBitsParams(std::string& error, const Consensus::Params& consensus, const Consensus::BIP9Deployment& deployment)
+{
+    // Special always or never active cases
+    if (deployment.nStartTime == Consensus::BIP9Deployment::NEVER_ACTIVE
+        || deployment.nStartTime == Consensus::BIP9Deployment::ALWAYS_ACTIVE) {
+        return true;
+    }
+
+    if (deployment.nStartTime < 0) {
+        error = strprintf("Invalid start (%d), cannot be negative (except for never or always active special cases)", deployment.nStartTime);
+        return false;
+    }
+    if (deployment.nTimeout < 0) {
+        error = strprintf("Invalid timeout (%d), cannot be negative (except for never or always active special cases)", deployment.nTimeout);
+        return false;
+    }
+
+    // Remaining checks only applicable to height-based start/timeout
+    if (deployment.use_mtp) return true;
+
+    // Actual params must be on retarget block
+    if (deployment.nStartTime % consensus.nMinerConfirmationWindow != 0) {
+        error = strprintf("Invalid startheight (%d), must be a multiple of %d", deployment.nStartTime, consensus.nMinerConfirmationWindow);
+        return false;
+    }
+    if (deployment.nTimeout != Consensus::BIP9Deployment::NO_TIMEOUT && deployment.nTimeout % consensus.nMinerConfirmationWindow != 0) {
+        error = strprintf("Invalid timeoutheight (%d), must be a multiple of %d", deployment.nTimeout, consensus.nMinerConfirmationWindow);
+        return false;
+    }
+    if (deployment.nTimeout < deployment.nStartTime + (2 * (int)consensus.nMinerConfirmationWindow)) {
+        error = strprintf("Invalid timeoutheight (%d), must be at least two periods greater than the startheight (%d)", deployment.nTimeout, deployment.nStartTime);
+        return false;
+    }
+    return true;
+}
+
 void CRegTestParams::UpdateActivationParametersFromArgs(const ArgsManager& args)
 {
     if (args.IsArgSet("-segwitheight")) {
@@ -493,17 +529,31 @@ void CRegTestParams::UpdateActivationParametersFromArgs(const ArgsManager& args)
         if (!deployment) {
             throw std::runtime_error(strprintf("Invalid deployment (%s)", vDeploymentParams[0]));
         }
+        deployment->use_mtp = (vDeploymentParams[1].substr(0, 1) != "@");
+        if (deployment->use_mtp != (vDeploymentParams[2].substr(0, 1) != "@")) {
+            throw std::runtime_error("Start and end must either both be times or both be heights");
+        }
+        auto literal_deployment_params = vDeploymentParams;  // copy for output later
+        if (!deployment->use_mtp) {
+            // Drop leading '@' character
+            vDeploymentParams[1].erase(0, 1);
+            vDeploymentParams[2].erase(0, 1);
+        }
         if (!ParseInt64(vDeploymentParams[1], &deployment->nStartTime)) {
-            throw std::runtime_error(strprintf("Invalid nStartTime (%s)", vDeploymentParams[1]));
+            throw std::runtime_error(strprintf("Invalid start (%s)", literal_deployment_params[1]));
         }
         if (!ParseInt64(vDeploymentParams[2], &deployment->nTimeout)) {
-            throw std::runtime_error(strprintf("Invalid nTimeout (%s)", vDeploymentParams[2]));
+            throw std::runtime_error(strprintf("Invalid end (%s)", literal_deployment_params[2]));
         }
         deployment->min_activation_height = 0;
         if (vDeploymentParams.size() >= 4 && !ParseInt32(vDeploymentParams[3], &deployment->min_activation_height)) {
             throw std::runtime_error(strprintf("Invalid min_activation_height (%s)", vDeploymentParams[3]));
         }
-        LogPrintf("Setting version bits activation parameters for %s to start=%ld, timeout=%ld, min_activation_height=%d\n", vDeploymentParams[0], deployment->nStartTime, deployment->nTimeout, deployment->min_activation_height);
+        std::string error;
+        if (!CheckVBitsParams(error, consensus, *deployment)) {
+            throw std::runtime_error(error);
+        }
+        LogPrintf("Setting version bits activation parameters for %s to start=%s, timeout=%s, min_activation_height=@%s\n", vDeploymentParams[0], literal_deployment_params[1], literal_deployment_params[2], deployment->min_activation_height);
     }
 }
 

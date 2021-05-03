@@ -133,4 +133,7 @@ const CChainParams &Params();
  */
 void SelectParams(const std::string& chain);
 
+/** Check that the given params make sense */
+bool CheckVBitsParams(std::string& error, const Consensus::Params& consensus, const Consensus::BIP9Deployment& deployment);
+
 #endif // BITCOIN_CHAINPARAMS_H
