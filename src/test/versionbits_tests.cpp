@@ -50,6 +50,14 @@ public:
     int MinActivationHeight(const Consensus::Params& params) const override { return 15000; }
 };
 
+class TestHeightActivationConditionChecker : public TestDelayedActivationConditionChecker
+{
+public:
+    int64_t BeginTime(const Consensus::Params& params) const override { return 2000; }
+    int64_t EndTime(const Consensus::Params& params) const override { return 6000; }
+    bool UseMTP(const Consensus::Params& params) const override { return false; }
+};
+
 class TestAlwaysActiveConditionChecker : public TestConditionChecker
 {
 public:
@@ -75,6 +83,9 @@ class VersionBitsTester
     TestConditionChecker checker[CHECKERS];
     // Another 6 that assume delayed activation
     TestDelayedActivationConditionChecker checker_delayed[CHECKERS];
+    // Another 6 that use height comparisons
+    TestHeightActivationConditionChecker checker_height[CHECKERS];
+    bool m_skip_height;
     // Another 6 that assume always active activation
     TestAlwaysActiveConditionChecker checker_always[CHECKERS];
     // Another 6 that assume never active activation
@@ -96,15 +107,22 @@ public:
         for (unsigned int  i = 0; i < CHECKERS; i++) {
             checker[i] = TestConditionChecker();
             checker_delayed[i] = TestDelayedActivationConditionChecker();
+            checker_height[i] = TestHeightActivationConditionChecker();
             checker_always[i] = TestAlwaysActiveConditionChecker();
             checker_never[i] = TestNeverActiveConditionChecker();
         }
         vpblock.clear();
+        m_skip_height = false;
         return *this;
     }
 
     ~VersionBitsTester() {
          Reset();
+    }
+
+    VersionBitsTester& SkipHeightTests() {
+        m_skip_height = true;
+        return *this;
     }
 
     VersionBitsTester& Mine(unsigned int height, int32_t nTime, int32_t nVersion) {
@@ -132,6 +150,9 @@ public:
             if (InsecureRandBits(i) == 0) {
                 BOOST_CHECK_MESSAGE(checker[i].GetStateSinceHeightFor(tip) == height, strprintf("Test %i for StateSinceHeight", num));
                 BOOST_CHECK_MESSAGE(checker_delayed[i].GetStateSinceHeightFor(tip) == height_delayed, strprintf("Test %i for StateSinceHeight (delayed)", num));
+                if (!m_skip_height) {
+                    BOOST_CHECK_MESSAGE(checker_height[i].GetStateSinceHeightFor(tip) == height_delayed, strprintf("Test %i for StateSinceHeight (height-based)", num));
+                }
                 BOOST_CHECK_MESSAGE(checker_always[i].GetStateSinceHeightFor(tip) == 0, strprintf("Test %i for StateSinceHeight (always active)", num));
                 BOOST_CHECK_MESSAGE(checker_never[i].GetStateSinceHeightFor(tip) == 0, strprintf("Test %i for StateSinceHeight (never active)", num));
             }
@@ -158,6 +179,7 @@ public:
             if (InsecureRandBits(i) == 0) {
                 ThresholdState got = checker[i].GetStateFor(pindex);
                 ThresholdState got_delayed = checker_delayed[i].GetStateFor(pindex);
+                ThresholdState got_height = checker_height[i].GetStateFor(pindex);
                 ThresholdState got_always = checker_always[i].GetStateFor(pindex);
                 ThresholdState got_never = checker_never[i].GetStateFor(pindex);
                 // nHeight of the next block. If vpblock is empty, the next (ie first)
@@ -165,6 +187,9 @@ public:
                 int height = pindex == nullptr ? 0 : pindex->nHeight + 1;
                 BOOST_CHECK_MESSAGE(got == exp, strprintf("Test %i for %s height %d (got %s)", num, StateName(exp), height, StateName(got)));
                 BOOST_CHECK_MESSAGE(got_delayed == exp_delayed, strprintf("Test %i for %s height %d (got %s; delayed case)", num, StateName(exp_delayed), height, StateName(got_delayed)));
+                if (!m_skip_height) {
+                    BOOST_CHECK_MESSAGE(got_height == exp_delayed, strprintf("Test %i for %s height %d (got %s; height-based)", num, StateName(exp_delayed), height, StateName(got_height)));
+                }
                 BOOST_CHECK_MESSAGE(got_always == ThresholdState::ACTIVE, strprintf("Test %i for ACTIVE height %d (got %s; always active case)", num, height, StateName(got_always)));
                 BOOST_CHECK_MESSAGE(got_never == ThresholdState::FAILED, strprintf("Test %i for FAILED height %d (got %s; never active case)", num, height, StateName(got_never)));
             }
@@ -192,6 +217,7 @@ BOOST_AUTO_TEST_CASE(versionbits_test)
     for (int i = 0; i < 64; i++) {
         // DEFINED -> STARTED after timeout reached -> FAILED
         VersionBitsTester().TestDefined().TestStateSinceHeight(0)
+                           .SkipHeightTests()  // This scenario is impossible with height-based activation
                            .Mine(1, TestTime(1), 0x100).TestDefined().TestStateSinceHeight(0)
                            .Mine(11, TestTime(11), 0x100).TestDefined().TestStateSinceHeight(0)
                            .Mine(989, TestTime(989), 0x100).TestDefined().TestStateSinceHeight(0)
@@ -209,13 +235,14 @@ BOOST_AUTO_TEST_CASE(versionbits_test)
                            .Mine(1, TestTime(1), 0).TestDefined().TestStateSinceHeight(0)
                            .Mine(1000, TestTime(10000) - 1, 0x100).TestDefined().TestStateSinceHeight(0) // One second more and it would be defined
                            .Mine(2000, TestTime(10000), 0x100).TestStarted().TestStateSinceHeight(2000) // So that's what happens the next period
-                           .Mine(2051, TestTime(10010), 0).TestStarted().TestStateSinceHeight(2000) // 51 old blocks
-                           .Mine(2950, TestTime(10020), 0x100).TestStarted().TestStateSinceHeight(2000) // 899 new blocks
-                           .Mine(3000, TestTime(20000), 0).TestFailed().TestStateSinceHeight(3000) // 50 old blocks (so 899 out of the past 1000)
-                           .Mine(4000, TestTime(20010), 0x100).TestFailed().TestStateSinceHeight(3000)
+                           .Mine(5051, TestTime(10010), 0).TestStarted().TestStateSinceHeight(2000) // 51 old blocks
+                           .Mine(5950, TestTime(10020), 0x100).TestStarted().TestStateSinceHeight(2000) // 899 new blocks
+                           .Mine(6000, TestTime(20000), 0).TestFailed().TestStateSinceHeight(6000) // 50 old blocks (so 899 out of the past 1000)
+                           .Mine(7000, TestTime(20010), 0x100).TestFailed().TestStateSinceHeight(6000)
 
         // DEFINED -> STARTED -> LOCKEDIN after timeout reached -> ACTIVE
                            .Reset().TestDefined().TestStateSinceHeight(0)
+                           .SkipHeightTests()  // This scenario is impossible with height-based activation
                            .Mine(1, TestTime(1), 0).TestDefined().TestStateSinceHeight(0)
                            .Mine(1000, TestTime(10000) - 1, 0x101).TestDefined().TestStateSinceHeight(0) // One second more and it would be defined
                            .Mine(2000, TestTime(10000), 0x101).TestStarted().TestStateSinceHeight(2000) // So that's what happens the next period
@@ -245,11 +272,12 @@ BOOST_AUTO_TEST_CASE(versionbits_test)
                            .Reset().TestDefined().TestStateSinceHeight(0)
                            .Mine(999, TestTime(999), 0).TestDefined().TestStateSinceHeight(0)
                            .Mine(1000, TestTime(1000), 0).TestDefined().TestStateSinceHeight(0)
-                           .Mine(2000, TestTime(2000), 0).TestDefined().TestStateSinceHeight(0)
-                           .Mine(3000, TestTime(10000), 0).TestStarted().TestStateSinceHeight(3000)
-                           .Mine(4000, TestTime(10000), 0).TestStarted().TestStateSinceHeight(3000)
-                           .Mine(5000, TestTime(10000), 0).TestStarted().TestStateSinceHeight(3000)
-                           .Mine(5999, TestTime(20000), 0).TestStarted().TestStateSinceHeight(3000)
+                           .Mine(1990, TestTime(2000), 0).TestDefined().TestStateSinceHeight(0)
+                           .Mine(1999, TestTime(10000), 0).TestDefined().TestStateSinceHeight(0)
+                           .Mine(2000, TestTime(10000), 0).TestStarted().TestStateSinceHeight(2000)
+                           .Mine(4000, TestTime(10000), 0).TestStarted().TestStateSinceHeight(2000)
+                           .Mine(5000, TestTime(10000), 0).TestStarted().TestStateSinceHeight(2000)
+                           .Mine(5999, TestTime(20000), 0).TestStarted().TestStateSinceHeight(2000)
                            .Mine(6000, TestTime(20000), 0).TestFailed().TestStateSinceHeight(6000)
                            .Mine(7000, TestTime(20000), 0x100).TestFailed().TestStateSinceHeight(6000)
                            .Mine(24000, TestTime(20000), 0x100).TestFailed().TestStateSinceHeight(6000) // stay in FAILED no matter how much we signal
@@ -267,6 +295,9 @@ BOOST_AUTO_TEST_CASE(versionbits_sanity)
         // Make sure that no deployment tries to set an invalid bit.
         BOOST_CHECK_EQUAL(bitmask & ~(uint32_t)VERSIONBITS_TOP_MASK, bitmask);
 
+        std::string error;
+        BOOST_CHECK_MESSAGE(CheckVBitsParams(error, mainnetParams, mainnetParams.vDeployments[i]), error);
+
         // Check min_activation_height is on a retarget boundary
         BOOST_CHECK_EQUAL(mainnetParams.vDeployments[i].min_activation_height % mainnetParams.nMinerConfirmationWindow, 0U);
         // Check min_activation_height is 0 for ALWAYS_ACTIVE and never active deployments
@@ -283,6 +314,11 @@ BOOST_AUTO_TEST_CASE(versionbits_sanity)
         // overlap.)
         for (int j=i+1; j<(int) Consensus::MAX_VERSION_BITS_DEPLOYMENTS; j++) {
             if (VersionBitsMask(mainnetParams, static_cast<Consensus::DeploymentPos>(j)) == bitmask) {
+                if (mainnetParams.vDeployments[j].use_mtp != mainnetParams.vDeployments[i].use_mtp) {
+                    // Can't check for overlap between a time-based deployment
+                    // and a height-based deployment.
+                    continue;
+                }
                 BOOST_CHECK(mainnetParams.vDeployments[j].nStartTime > mainnetParams.vDeployments[i].nTimeout ||
                         mainnetParams.vDeployments[i].nStartTime > mainnetParams.vDeployments[j].nTimeout);
             }
