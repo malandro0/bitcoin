@@ -1230,8 +1230,13 @@ static void BIP9SoftForkDescPushBack(UniValue& softforks, const std::string &nam
     if (has_signal) {
         bip9.pushKV("bit", consensusParams.vDeployments[id].bit);
     }
-    bip9.pushKV("start_time", consensusParams.vDeployments[id].nStartTime);
-    bip9.pushKV("timeout", consensusParams.vDeployments[id].nTimeout);
+    if (consensusParams.vDeployments[id].use_mtp) {
+        bip9.pushKV("start_time", consensusParams.vDeployments[id].nStartTime);
+        bip9.pushKV("timeout", consensusParams.vDeployments[id].nTimeout);
+    } else {
+        bip9.pushKV("startheight", consensusParams.vDeployments[id].nStartTime);
+        bip9.pushKV("timeoutheight", consensusParams.vDeployments[id].nTimeout);
+    }
     int64_t since_height = VersionBitsTipStateSinceHeight(consensusParams, id);
     bip9.pushKV("since", since_height);
     if (has_signal) {
@@ -1292,6 +1297,8 @@ RPCHelpMan getblockchaininfo()
                                     {RPCResult::Type::NUM, "bit", "the bit (0-28) in the block version field used to signal this softfork (only for \"started\" and \"locked_in\" status)"},
                                     {RPCResult::Type::NUM_TIME, "start_time", "the minimum median time past of a block at which the bit gains its meaning"},
                                     {RPCResult::Type::NUM_TIME, "timeout", "the median time past of a block at which the deployment is considered failed if not yet locked in"},
+                                    {RPCResult::Type::NUM, "startheight", "the minimum height of a block at which the bit gains its meaning"},
+                                    {RPCResult::Type::NUM, "timeoutheight", "the height of a block at which the deployment is considered failed if not yet locked in"},
                                     {RPCResult::Type::NUM, "since", "height of the first block to which the status applies"},
                                     {RPCResult::Type::NUM, "min_activation_height", "minimum height of blocks for which the rules may be enforced"},
                                     {RPCResult::Type::OBJ, "statistics", "numeric statistics about signalling for a softfork (only for \"started\" and \"locked_in\" status)",
