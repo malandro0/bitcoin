@@ -8,6 +8,7 @@
 #include <test/util/setup_common.h>
 #include <validation.h>
 #include <versionbits.h>
+#include <versionbitsinfo.h>
 
 #include <boost/test/unit_test.hpp>
 
@@ -335,6 +336,7 @@ static void check_computeblockversion(const Consensus::Params& params, Consensus
     int64_t bit = params.vDeployments[dep].bit;
     int64_t nStartTime = params.vDeployments[dep].nStartTime;
     int64_t nTimeout = params.vDeployments[dep].nTimeout;
+    const bool use_mtp = params.vDeployments[dep].use_mtp;
     int min_activation_height = params.vDeployments[dep].min_activation_height;
 
     // should not be any signalling for first block
@@ -357,12 +359,18 @@ static void check_computeblockversion(const Consensus::Params& params, Consensus
     // LOCKED-IN, and then no longer set while ACTIVE.
     VersionBitsTester firstChain, secondChain;
 
-    int64_t nTime = nStartTime;
+    int64_t nTime = use_mtp ? nStartTime : TestTime(nStartTime);
 
     const CBlockIndex *lastBlock = nullptr;
 
     // Before MedianTimePast of the chain has crossed nStartTime, the bit
     // should not be set.
+    if (!use_mtp) {
+        // Before the chain has reached startheight-1, the bit should not be set.
+        lastBlock = firstChain.Mine(nStartTime - 1, nTime, VERSIONBITS_LAST_OLD_BLOCK_VERSION).Tip();
+        BOOST_CHECK_EQUAL(ComputeBlockVersion(lastBlock, params) & (1<<bit), 0);
+        // Next we will advance to startheight and transition to STARTED,
+    } else
     if (nTime == 0) {
         // since CBlockIndex::nTime is uint32_t we can't represent any
         // earlier time, so will transition from DEFINED to STARTED at the
@@ -395,7 +403,8 @@ static void check_computeblockversion(const Consensus::Params& params, Consensus
         // Next we will advance to the next period and transition to STARTED,
     }
 
-    lastBlock = firstChain.Mine(params.nMinerConfirmationWindow * 3, nTime, VERSIONBITS_LAST_OLD_BLOCK_VERSION).Tip();
+    uint32_t nHeight = use_mtp ? (params.nMinerConfirmationWindow * 3) : nStartTime;
+    lastBlock = firstChain.Mine(nHeight, nTime, VERSIONBITS_LAST_OLD_BLOCK_VERSION).Tip();
     // so ComputeBlockVersion should now set the bit,
     BOOST_CHECK((ComputeBlockVersion(lastBlock, params) & (1<<bit)) != 0);
     // and should also be using the VERSIONBITS_TOP_BITS.
@@ -404,9 +413,15 @@ static void check_computeblockversion(const Consensus::Params& params, Consensus
     // Check that ComputeBlockVersion will set the bit until nTimeout
     nTime += 600;
     uint32_t blocksToMine = params.nMinerConfirmationWindow * 2; // test blocks for up to 2 time periods
-    uint32_t nHeight = params.nMinerConfirmationWindow * 3;
     // These blocks are all before nTimeout is reached.
-    while (nTime < nTimeout && blocksToMine > 0) {
+    while (true) {
+        // Ensure that after this loop, we can still do a full period before timeout is hit
+        if (use_mtp) {
+            if (nTime >= nTimeout || !blocksToMine) break;
+        } else {
+            if (nHeight + params.nMinerConfirmationWindow >= nTimeout) break;
+        }
+
         lastBlock = firstChain.Mine(nHeight+1, nTime, VERSIONBITS_LAST_OLD_BLOCK_VERSION).Tip();
         BOOST_CHECK((ComputeBlockVersion(lastBlock, params) & (1<<bit)) != 0);
         BOOST_CHECK_EQUAL(ComputeBlockVersion(lastBlock, params) & VERSIONBITS_TOP_MASK, VERSIONBITS_TOP_BITS);
@@ -418,7 +433,7 @@ static void check_computeblockversion(const Consensus::Params& params, Consensus
     if (nTimeout != Consensus::BIP9Deployment::NO_TIMEOUT) {
         // can reach any nTimeout other than NO_TIMEOUT due to earlier BOOST_REQUIRE
 
-        nTime = nTimeout;
+        if (use_mtp) nTime = nTimeout;
 
         // finish the last period before we start timing out
         while (nHeight % params.nMinerConfirmationWindow != 0) {
@@ -442,24 +457,32 @@ static void check_computeblockversion(const Consensus::Params& params, Consensus
     // On a new chain:
     // verify that the bit will be set after lock-in, and then stop being set
     // after activation.
-    nTime = nStartTime;
+    if (use_mtp) {
+        nTime = nStartTime;
+        nHeight = params.nMinerConfirmationWindow;
+    } else {
+        nTime = TestTime(nStartTime);
+        nHeight = nStartTime;
+    }
 
     // Mine one period worth of blocks, and check that the bit will be on for the
     // next period.
-    lastBlock = secondChain.Mine(params.nMinerConfirmationWindow, nTime, VERSIONBITS_LAST_OLD_BLOCK_VERSION).Tip();
+    lastBlock = secondChain.Mine(nHeight, nTime, VERSIONBITS_LAST_OLD_BLOCK_VERSION).Tip();
     BOOST_CHECK((ComputeBlockVersion(lastBlock, params) & (1<<bit)) != 0);
 
     // Mine another period worth of blocks, signaling the new bit.
-    lastBlock = secondChain.Mine(params.nMinerConfirmationWindow * 2, nTime, VERSIONBITS_TOP_BITS | (1<<bit)).Tip();
+    nHeight += params.nMinerConfirmationWindow;
+    lastBlock = secondChain.Mine(nHeight, nTime, VERSIONBITS_TOP_BITS | (1<<bit)).Tip();
     // After one period of setting the bit on each block, it should have locked in.
     // We keep setting the bit for one more period though, until activation.
     BOOST_CHECK((ComputeBlockVersion(lastBlock, params) & (1<<bit)) != 0);
 
     // Now check that we keep mining the block until the end of this period, and
     // then stop at the beginning of the next period.
-    lastBlock = secondChain.Mine((params.nMinerConfirmationWindow * 3) - 1, nTime, VERSIONBITS_LAST_OLD_BLOCK_VERSION).Tip();
+    nHeight += params.nMinerConfirmationWindow;
+    lastBlock = secondChain.Mine(nHeight - 1, nTime, VERSIONBITS_LAST_OLD_BLOCK_VERSION).Tip();
     BOOST_CHECK((ComputeBlockVersion(lastBlock, params) & (1 << bit)) != 0);
-    lastBlock = secondChain.Mine(params.nMinerConfirmationWindow * 3, nTime, VERSIONBITS_LAST_OLD_BLOCK_VERSION).Tip();
+    lastBlock = secondChain.Mine(nHeight, nTime, VERSIONBITS_LAST_OLD_BLOCK_VERSION).Tip();
 
     if (lastBlock->nHeight + 1 < min_activation_height) {
         // check signalling continues while min_activation_height is not reached
@@ -479,8 +502,29 @@ BOOST_AUTO_TEST_CASE(versionbits_computeblockversion)
     // ACTIVE and FAILED states in roughly the way we expect
     for (const auto& chain_name : {CBaseChainParams::MAIN, CBaseChainParams::TESTNET, CBaseChainParams::SIGNET, CBaseChainParams::REGTEST}) {
         const auto chainParams = CreateChainParams(*m_node.args, chain_name);
+        const auto& params = chainParams->GetConsensus();
         for (int i = 0; i < (int)Consensus::MAX_VERSION_BITS_DEPLOYMENTS; ++i) {
+            const auto dep = static_cast<Consensus::DeploymentPos>(i);
+            const auto& dp = params.vDeployments[dep];
+            // Don't try to run difficult scenarios
+            if ((!dp.use_mtp) && dp.nTimeout > 10000) return;
             check_computeblockversion(chainParams->GetConsensus(), static_cast<Consensus::DeploymentPos>(i));
+        }
+    }
+
+    // Use -vbparams to test every activation with a variety of params
+    {
+        const auto& chain_name{CBaseChainParams::REGTEST};
+        const int period = CreateChainParams(*m_node.args, chain_name)->GetConsensus().nMinerConfirmationWindow;
+        ArgsManager args;
+        for (int i = 0; i < (int)Consensus::MAX_VERSION_BITS_DEPLOYMENTS; ++i) {
+            for (const auto& vbparam_startend : {strprintf("@%s:@%s", period, period * 4), std::string("1199145601:1230767999")}) {
+            for (const auto& vbparam_minact : {strprintf(":%s", period * 8), std::string()}) {
+                args.ForceSetArg("-vbparams", strprintf("%s:%s%s", VersionBitsDeploymentInfo[i].name, vbparam_startend, vbparam_minact));
+                const auto chainParams = CreateChainParams(args, chain_name);
+                check_computeblockversion(chainParams->GetConsensus(), static_cast<Consensus::DeploymentPos>(i));
+            }
+            }
         }
     }
 
