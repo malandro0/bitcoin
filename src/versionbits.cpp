@@ -12,6 +12,7 @@ ThresholdState AbstractThresholdConditionChecker::GetStateFor(const CBlockIndex*
     int min_activation_height = MinActivationHeight(params);
     int64_t nTimeStart = BeginTime(params);
     int64_t nTimeTimeout = EndTime(params);
+    const bool use_mtp = UseMTP(params);
 
     // Check if this deployment is always active.
     if (nTimeStart == Consensus::BIP9Deployment::ALWAYS_ACTIVE) {
@@ -36,7 +37,10 @@ ThresholdState AbstractThresholdConditionChecker::GetStateFor(const CBlockIndex*
             cache[pindexPrev] = ThresholdState::DEFINED;
             break;
         }
-        if (pindexPrev->GetMedianTimePast() < nTimeStart) {
+
+        // We track state by previous-block, so the height we should be comparing is +1
+        const int64_t compare_time = use_mtp ? pindexPrev->GetMedianTimePast() : int64_t(pindexPrev->nHeight + 1);
+        if (compare_time < nTimeStart) {
             // Optimization: don't recompute down further, as we know every earlier block will be before the start time
             cache[pindexPrev] = ThresholdState::DEFINED;
             break;
@@ -55,9 +59,12 @@ ThresholdState AbstractThresholdConditionChecker::GetStateFor(const CBlockIndex*
         pindexPrev = vToCompute.back();
         vToCompute.pop_back();
 
+        // We track state by previous-block, so the height we should be comparing is +1
+        const int64_t compare_time = use_mtp ? pindexPrev->GetMedianTimePast() : int64_t(pindexPrev->nHeight + 1);
+
         switch (state) {
             case ThresholdState::DEFINED: {
-                if (pindexPrev->GetMedianTimePast() >= nTimeStart) {
+                if (compare_time >= nTimeStart) {
                     stateNext = ThresholdState::STARTED;
                 }
                 break;
@@ -74,7 +81,7 @@ ThresholdState AbstractThresholdConditionChecker::GetStateFor(const CBlockIndex*
                 }
                 if (count >= nThreshold) {
                     stateNext = ThresholdState::LOCKED_IN;
-                } else if (pindexPrev->GetMedianTimePast() >= nTimeTimeout) {
+                } else if (compare_time >= nTimeTimeout) {
                     stateNext = ThresholdState::FAILED;
                 }
                 break;
@@ -174,6 +181,7 @@ private:
 protected:
     int64_t BeginTime(const Consensus::Params& params) const override { return params.vDeployments[id].nStartTime; }
     int64_t EndTime(const Consensus::Params& params) const override { return params.vDeployments[id].nTimeout; }
+    bool UseMTP(const Consensus::Params& params) const override { return params.vDeployments[id].use_mtp; }
     int MinActivationHeight(const Consensus::Params& params) const override { return params.vDeployments[id].min_activation_height; }
     int Period(const Consensus::Params& params) const override { return params.nMinerConfirmationWindow; }
     int Threshold(const Consensus::Params& params) const override { return params.nRuleChangeActivationThreshold; }
