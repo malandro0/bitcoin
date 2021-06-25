@@ -10,6 +10,7 @@
 #include <chainparams.h>
 #include <core_io.h>
 #include <fs.h>
+#include <node/context.h>
 #include <node/mempool_persist_args.h>
 #include <policy/rbf.h>
 #include <policy/settings.h>
@@ -20,6 +21,7 @@
 #include <txmempool.h>
 #include <univalue.h>
 #include <util/moneystr.h>
+#include <util/system.h>
 #include <util/time.h>
 
 using kernel::DumpMempool;
@@ -378,12 +380,18 @@ static RPCHelpMan maxmempool()
     int64_t nMempoolSizeMax = nSize * 1000000;
 
     CTxMemPool& mempool = EnsureAnyMemPool(request.context);
-    LOCK(mempool.cs);
+    LOCK2(cs_main, mempool.cs);
 
     int64_t nMempoolSizeMin = maxmempoolMinimumBytes(mempool.m_limits.descendant_size_vbytes);
     if (nMempoolSizeMax < 0 || nMempoolSizeMax < nMempoolSizeMin)
         throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("MaxMempool size %d is too small", nSize));
     mempool.m_max_size_bytes = nSize;
+
+    auto node_context = util::AnyPtr<NodeContext>(request.context);
+    if (node_context && node_context->chainman) {
+        Chainstate& active_chainstate = node_context->chainman->ActiveChainstate();
+        LimitMempoolSize(mempool, active_chainstate.CoinsTip());
+    }
 
     return NullUniValue;
 }
