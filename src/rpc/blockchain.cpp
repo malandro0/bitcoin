@@ -1065,6 +1065,138 @@ static RPCHelpMan getblock()
     };
 }
 
+static RPCHelpMan listprunelocks()
+{
+    return RPCHelpMan{"listprunelocks",
+        "\nReturns a list of pruning locks.\n",
+        {},
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::ARR, "prune_locks", "",
+                {
+                    {RPCResult::Type::OBJ, "", "",
+                    {
+                        {RPCResult::Type::STR, "id", "A unique identifier for the lock"},
+                        {RPCResult::Type::ARR_FIXED, "height", "Range of blocks prevented from being pruned",
+                        {
+                            {RPCResult::Type::NUM, "height_first", "Height of first block that may not be pruned"},
+                            {RPCResult::Type::NUM, "height_last", /*optional=*/true, "Height of last block that may not be pruned (omitted if unbounded; unsupported in this version, so always omitted)"},
+                        }},
+                    }},
+                }},
+            }
+        },
+        RPCExamples{
+            HelpExampleCli("listprunelocks", "")
+          + HelpExampleRpc("listprunelocks", "")
+        },
+    [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    UniValue locks_uv(UniValue::VARR);
+    {
+        ChainstateManager& chainman = EnsureAnyChainman(request.context);
+        LOCK(cs_main);
+        for (const auto& prune_lock : chainman.m_blockman.m_prune_blockers) {
+            UniValue prune_lock_uv(UniValue::VOBJ);
+            const auto& lockinfo = prune_lock.second;
+            prune_lock_uv.pushKV("id", prune_lock.first);
+            UniValue heights_uv(UniValue::VARR);
+            heights_uv.push_back(lockinfo.m_height_first);
+            prune_lock_uv.pushKV("height", heights_uv);
+            locks_uv.push_back(prune_lock_uv);
+        }
+    }
+
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("prune_locks", locks_uv);
+    return result;
+},
+    };
+}
+
+static RPCHelpMan setprunelock()
+{
+    return RPCHelpMan{"setprunelock",
+        "\nManipulate pruning locks.\n",
+        {
+            {"id", RPCArg::Type::STR, RPCArg::Optional::NO, "The unique id of the manipulated prune lock (or \"*\" if deleting all)"},
+            {"lock_info", RPCArg::Type::OBJ, RPCArg::Optional::NO, "An object describing the desired lock",
+                {
+                    {"height", RPCArg::Type::RANGE, RPCArg::DefaultHint("deletes the lock"), "The range of block heights to prevent pruning"},
+                },
+            },
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::BOOL, "success", "Whether the change was successful"},
+            }},
+        RPCExamples{
+            HelpExampleCli("setprunelock", "\"test\" \"{\\\"desc\\\": \\\"Just a test\\\", \\\"height\\\": [0,100]}\"")
+          + HelpExampleCli("setprunelock", "\"test-2\" \"{\\\"desc\\\": \\\"Second RPC-created prunelock test\\\", \\\"height\\\": [100]}\"")
+          + HelpExampleRpc("setprunelock", "\"test\", {\"desc\": \"Just a test\", \"height\": [0,100]}")
+        },
+    [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ});
+    const auto& lockinfo_json = request.params[1];
+    RPCTypeCheckObj(lockinfo_json,
+        {
+            {"height", UniValueType()}, // will be checked below
+        },
+        /*allow_null=*/ true, /*strict=*/ true);
+
+    const auto& lockid = request.params[0].get_str();
+
+    ChainstateManager& chainman = EnsureAnyChainman(request.context);
+
+    PruneLockInfo lockinfo;
+
+    auto height_param = lockinfo_json["height"];
+    if (!height_param.isArray()) {
+        UniValue new_height_param(UniValue::VARR);
+        new_height_param.push_back(std::move(height_param));
+        height_param = std::move(new_height_param);
+    }
+    bool success;
+    if (height_param[0].isNull() && height_param[1].isNull()) {
+        // Delete
+        if (lockid == "*") {
+            // Delete all
+            success = true;
+            std::vector<std::string> all_ids;
+            LOCK(cs_main);
+            for (const auto& prune_lock : chainman.m_blockman.m_prune_blockers) {
+                all_ids.push_back(prune_lock.first);
+            }
+            for (auto& lockid : all_ids) {
+                chainman.m_blockman.DeletePruneLock(lockid);
+            }
+        } else {
+            LOCK(cs_main);
+            success = chainman.m_blockman.PruneLockExists(lockid);
+            if (success) chainman.m_blockman.DeletePruneLock(lockid);
+        }
+    } else {
+        if (lockid == "*") throw JSONRPCError(RPC_INVALID_PARAMETER, "id \"*\" only makes sense when deleting");
+        if (!height_param[0].isNum()) throw JSONRPCError(RPC_TYPE_ERROR, "Invalid start height");
+        lockinfo.m_height_first = height_param[0].get_int64();
+        if (!height_param[1].isNull()) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "End height not supported");
+        }
+        LOCK(cs_main);
+        chainman.m_blockman.UpdatePruneBlocker(lockid, lockinfo);
+        success = true;
+    }
+
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("success", success);
+    return result;
+},
+    };
+}
+
 static RPCHelpMan pruneblockchain()
 {
     return RPCHelpMan{"pruneblockchain", "",
@@ -2723,6 +2855,8 @@ static const CRPCCommand commands[] =
     { "blockchain",         &getrawmempool,                      },
     { "blockchain",         &gettxout,                           },
     { "blockchain",         &gettxoutsetinfo,                    },
+    { "blockchain",         &listprunelocks,                     },
+    { "blockchain",         &setprunelock,                       },
     { "blockchain",         &pruneblockchain,                    },
     { "blockchain",         &savemempool,                        },
     { "blockchain",         &verifychain,                        },
