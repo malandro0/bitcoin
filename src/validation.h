@@ -470,7 +470,9 @@ public:
      */
     std::unordered_map<std::string, PruneLockInfo> m_prune_blockers GUARDED_BY(::cs_main);
 
+    bool PruneLockExists(const std::string& lockid) SHARED_LOCKS_REQUIRED(::cs_main);
     void UpdatePruneBlocker(const std::string& name, const PruneLockInfo& block) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
+    void DeletePruneLock(const std::string& lockid) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 
     ~BlockManager() {
         Unload();
