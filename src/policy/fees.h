@@ -223,6 +223,10 @@ public:
     bool Write(AutoFile& fileout) const
         EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
 
+    /** Write estimation data to the default file */
+    bool Write() const
+        EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
+
     /** Read estimation data from a file */
     bool Read(AutoFile& filein)
         EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
