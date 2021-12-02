@@ -88,7 +88,7 @@ public:
     bool getMinimizeOnClose() const { return fMinimizeOnClose; }
     int getDisplayUnit() const { return nDisplayUnit; }
     QString getThirdPartyTxUrls() const { return strThirdPartyTxUrls; }
-    bool getUseEmbeddedMonospacedFont() const { return m_use_embedded_monospaced_font; }
+    QFont getFontForMoney() const;
     bool getCoinControlFeatures() const { return fCoinControlFeatures; }
     bool getSubFeeFromAmount() const { return m_sub_fee_from_amount; }
     bool getEnablePSBTControls() const { return m_enable_psbt_controls; }
@@ -130,7 +130,7 @@ Q_SIGNALS:
     void displayUnitChanged(int unit);
     void coinControlFeaturesChanged(bool);
     void showTrayIconChanged(bool);
-    void useEmbeddedMonospacedFontChanged(bool);
+    void fontForMoneyChanged(const QFont&);
 };
 
 #endif // BITCOIN_QT_OPTIONSMODEL_H

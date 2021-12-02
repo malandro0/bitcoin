@@ -193,7 +193,7 @@ void OptionsModel::Init(bool resetSettings)
         settings.setValue("UseEmbeddedMonospacedFont", "true");
     }
     m_use_embedded_monospaced_font = settings.value("UseEmbeddedMonospacedFont").toBool();
-    Q_EMIT useEmbeddedMonospacedFontChanged(m_use_embedded_monospaced_font);
+    Q_EMIT fontForMoneyChanged(getFontForMoney());
 }
 
 /** Helper function to copy contents from one QSettings to another.
@@ -507,7 +507,7 @@ bool OptionsModel::setData(const QModelIndex & index, const QVariant & value, in
         case UseEmbeddedMonospacedFont:
             m_use_embedded_monospaced_font = value.toBool();
             settings.setValue("UseEmbeddedMonospacedFont", m_use_embedded_monospaced_font);
-            Q_EMIT useEmbeddedMonospacedFontChanged(m_use_embedded_monospaced_font);
+            Q_EMIT fontForMoneyChanged(getFontForMoney());
             break;
         case CoinControlFeatures:
             fCoinControlFeatures = value.toBool();
@@ -574,6 +574,13 @@ void OptionsModel::setDisplayUnit(const QVariant &value)
         settings.setValue("nDisplayUnit", nDisplayUnit);
         Q_EMIT displayUnitChanged(nDisplayUnit);
     }
+}
+
+QFont OptionsModel::getFontForMoney() const
+{
+    QFont f = GUIUtil::fixedPitchFont(m_use_embedded_monospaced_font);
+    f.setWeight(QFont::Bold);
+    return f;
 }
 
 void OptionsModel::setRestartRequired(bool fRequired)
