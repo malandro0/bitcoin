@@ -10,8 +10,10 @@
 #include <qt/guiconstants.h>
 
 #include <QAbstractListModel>
+#include <QFont>
 
 #include <assert.h>
+#include <variant>
 
 struct bilingual_str;
 namespace interfaces {
@@ -75,6 +77,13 @@ public:
         OptionIDRowCount,
     };
 
+    enum class FontChoiceAbstract {
+        EmbeddedFont,
+        BestSystemFont,
+    };
+    typedef std::variant<FontChoiceAbstract, QFont> FontChoice;
+    static inline const FontChoice UseBestSystemFont{FontChoiceAbstract::BestSystemFont};
+
     bool Init(bilingual_str& error);
     void Reset();
 
@@ -116,7 +125,7 @@ private:
     QString language;
     BitcoinUnit m_display_bitcoin_unit;
     QString strThirdPartyTxUrls;
-    bool m_use_embedded_monospaced_font;
+    FontChoice m_font_money;
     bool fCoinControlFeatures;
     bool m_sub_fee_from_amount;
     bool m_enable_psbt_controls;
