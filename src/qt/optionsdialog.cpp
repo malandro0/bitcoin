@@ -196,6 +196,15 @@ void OptionsDialog::setModel(OptionsModel *_model)
         setMapper();
         mapper->toFirst();
 
+        const auto& font_for_money = _model->data(_model->index(OptionsModel::FontForMoney, 0), Qt::EditRole).value<OptionsModel::FontChoice>();
+        if (std::holds_alternative<OptionsModel::FontChoiceAbstract>(font_for_money)) {
+            ui->embeddedFont_radioButton->setChecked(font_for_money != OptionsModel::UseBestSystemFont);
+            ui->systemFont_radioButton->setChecked(font_for_money == OptionsModel::UseBestSystemFont);
+        } else {
+            ui->embeddedFont_radioButton->setChecked(false);
+            ui->systemFont_radioButton->setChecked(false);
+        }
+
         updateDefaultProxyNets();
     }
 
@@ -273,7 +282,6 @@ void OptionsDialog::setMapper()
     mapper->addMapping(ui->lang, OptionsModel::Language);
     mapper->addMapping(ui->unit, OptionsModel::DisplayUnit);
     mapper->addMapping(ui->thirdPartyTxUrls, OptionsModel::ThirdPartyTxUrls);
-    mapper->addMapping(ui->embeddedFont_radioButton, OptionsModel::UseEmbeddedMonospacedFont);
 }
 
 void OptionsDialog::setOkButtonState(bool fState)
@@ -326,6 +334,12 @@ void OptionsDialog::on_openBitcoinConfButton_clicked()
 
 void OptionsDialog::on_okButton_clicked()
 {
+    if (ui->embeddedFont_radioButton->isChecked()) {
+        model->setData(model->index(OptionsModel::FontForMoney, 0), QVariant::fromValue(OptionsModel::FontChoice{OptionsModel::FontChoiceAbstract::EmbeddedFont}));
+    } else if (ui->systemFont_radioButton->isChecked()) {
+        model->setData(model->index(OptionsModel::FontForMoney, 0), QVariant::fromValue(OptionsModel::FontChoice{OptionsModel::FontChoiceAbstract::BestSystemFont}));
+    }
+
     mapper->submit();
     accept();
     updateDefaultProxyNets();
