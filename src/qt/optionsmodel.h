@@ -9,8 +9,10 @@
 #include <qt/guiconstants.h>
 
 #include <QAbstractListModel>
+#include <QFont>
 
 #include <assert.h>
+#include <variant>
 
 namespace interfaces {
 class Node;
@@ -73,6 +75,13 @@ public:
         OptionIDRowCount,
     };
 
+    enum class FontChoiceAbstract {
+        EmbeddedFont,
+        BestSystemFont,
+    };
+    typedef std::variant<FontChoiceAbstract, QFont> FontChoice;
+    static inline const FontChoice UseBestSystemFont{FontChoiceAbstract::BestSystemFont};
+
     void Init(bool resetSettings = false);
     void Reset();
 
@@ -114,7 +123,7 @@ private:
     QString language;
     int nDisplayUnit;
     QString strThirdPartyTxUrls;
-    bool m_use_embedded_monospaced_font;
+    FontChoice m_font_money;
     bool fCoinControlFeatures;
     bool m_sub_fee_from_amount;
     bool m_enable_psbt_controls;
