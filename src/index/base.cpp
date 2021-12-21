@@ -380,7 +380,9 @@ void BaseIndex::SetBestBlockIndex(const CBlockIndex* block) {
 
     m_best_block_index = block;
     if (AllowPrune() && block) {
+        PruneLockInfo prune_lock;
+        prune_lock.m_height_first = block->nHeight;
         LOCK(::cs_main);
-        m_chainstate->m_blockman.UpdatePruneBlocker(GetName(), block);
+        m_chainstate->m_blockman.UpdatePruneBlocker(GetName(), prune_lock);
     }
 }

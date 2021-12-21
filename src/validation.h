@@ -389,6 +389,10 @@ struct CBlockIndexWorkComparator
     bool operator()(const CBlockIndex *pa, const CBlockIndex *pb) const;
 };
 
+struct PruneLockInfo {
+    uint64_t m_height_first{std::numeric_limits<uint64_t>::max()};
+};
+
 /**
  * Maintains a tree of blocks (stored in `m_block_index`) which is consulted
  * to determine where the most-work tip is.
@@ -464,9 +468,9 @@ public:
      * @note Internally, only blocks at height (block->nHeight - PRUNE_BLOCKER_BUFFER) and
      * below will be pruned, but callers should avoid assuming any particular buffer size.
      */
-    std::unordered_map<std::string, const CBlockIndex*> m_prune_blockers GUARDED_BY(::cs_main);
+    std::unordered_map<std::string, PruneLockInfo> m_prune_blockers GUARDED_BY(::cs_main);
 
-    void UpdatePruneBlocker(const std::string& name, const CBlockIndex* block) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
+    void UpdatePruneBlocker(const std::string& name, const PruneLockInfo& block) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 
     ~BlockManager() {
         Unload();

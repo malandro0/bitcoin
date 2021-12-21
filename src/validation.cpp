@@ -2227,7 +2227,8 @@ bool CChainState::FlushStateToDisk(
             int last_prune = m_chain.Height(); // last height we can prune
 
             for (const auto& blocker : m_blockman.m_prune_blockers) {
-                const int blocker_height{blocker.second->nHeight - PRUNE_BLOCKER_BUFFER};
+                if (blocker.second.m_height_first > std::numeric_limits<int>::max()) continue;
+                const int blocker_height{int(blocker.second.m_height_first) - PRUNE_BLOCKER_BUFFER};
                 last_prune = std::max(1, std::min(last_prune, blocker_height));
                 if (last_prune == blocker_height) {
                     LogPrint(BCLog::PRUNE, "%s limited pruning to height %d\n", blocker.first, blocker_height);
@@ -3898,7 +3899,7 @@ void BlockManager::FindFilesToPrune(std::set<int>& setFilesToPrune, uint64_t nPr
            nLastBlockWeCanPrune, count);
 }
 
-void BlockManager::UpdatePruneBlocker(const std::string& name, const CBlockIndex* block) {
+void BlockManager::UpdatePruneBlocker(const std::string& name, const PruneLockInfo& block) {
     AssertLockHeld(::cs_main);
     m_prune_blockers[name] = block;
 }
