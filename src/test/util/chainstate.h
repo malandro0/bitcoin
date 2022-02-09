@@ -34,6 +34,7 @@ CreateAndActivateUTXOSnapshot(node::NodeContext& node, const fs::path root, F ma
     AutoFile auto_outfile{outfile};
 
     UniValue result = CreateUTXOSnapshot(
+        false, false, Span<std::byte>(), {},
         node, node.chainman->ActiveChainstate(), auto_outfile, snapshot_path, snapshot_path);
     LogPrintf(
         "Wrote UTXO snapshot to %s: %s", fs::PathToString(snapshot_path.make_preferred()), result.write());
