@@ -732,6 +732,11 @@ libbitcoin_util_a_SOURCES = \
   $(BITCOIN_CORE_H)
 #
 
+if GLIBC_BACK_COMPAT
+libbitcoin_util_a_SOURCES += compat/glibc_compat.cpp
+AM_LDFLAGS += -Wl,--wrap=__divmoddi4
+endif
+
 # cli #
 libbitcoin_cli_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 libbitcoin_cli_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
@@ -986,6 +991,10 @@ lib_LTLIBRARIES += $(LIBBITCOINCONSENSUS)
 
 include_HEADERS = script/bitcoinconsensus.h
 libbitcoinconsensus_la_SOURCES = support/cleanse.cpp $(crypto_libbitcoin_crypto_base_la_SOURCES) $(libbitcoin_consensus_a_SOURCES)
+
+if GLIBC_BACK_COMPAT
+  libbitcoinconsensus_la_SOURCES += compat/glibc_compat.cpp
+endif
 
 libbitcoinconsensus_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(RELDFLAGS)
 libbitcoinconsensus_la_LIBADD = $(LIBSECP256K1)
