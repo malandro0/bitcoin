@@ -51,7 +51,7 @@ using node::GetTransaction;
 using node::NodeContext;
 using node::PSBTAnalysis;
 
-static void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry, CChainState& active_chainstate)
+static void TxToJSON(const CTransaction& tx, const uint256& hashBlock, UniValue& entry, const CChainState& active_chainstate)
 {
     // Call into TxToUniv() in bitcoin-common to decode the transaction hex.
     //
@@ -61,7 +61,7 @@ static void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& 
     TxToUniv(tx, /*block_hash=*/uint256(), entry, /*include_hex=*/true, RPCSerializationFlags());
 
     if (!hashBlock.IsNull()) {
-        LOCK(cs_main);
+        LOCK(::cs_main);
 
         entry.pushKV("blockhash", hashBlock.GetHex());
         const CBlockIndex* pindex = active_chainstate.m_blockman.LookupBlockIndex(hashBlock);
@@ -70,9 +70,9 @@ static void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& 
                 entry.pushKV("confirmations", 1 + active_chainstate.m_chain.Height() - pindex->nHeight);
                 entry.pushKV("time", pindex->GetBlockTime());
                 entry.pushKV("blocktime", pindex->GetBlockTime());
-            }
-            else
+            } else {
                 entry.pushKV("confirmations", 0);
+            }
         }
     }
 }
@@ -117,7 +117,7 @@ static std::vector<RPCResult> DecodeTxDoc(const std::string& txid_field_doc)
                     {RPCResult::Type::STR, "asm", "Disassembly of the public key script"},
                     {RPCResult::Type::STR, "desc", "Inferred descriptor for the output"},
                     {RPCResult::Type::STR_HEX, "hex", "The raw public key script bytes, hex-encoded"},
-                    {RPCResult::Type::STR, "type", "The type, eg 'pubkeyhash'"},
+                    {RPCResult::Type::STR, "type", "The type (one of: " + GetAllOutputTypes() + ")"},
                     {RPCResult::Type::STR, "address", /*optional=*/true, "The Bitcoin address (only if a well-defined address exists)"},
                 }},
             }},
@@ -174,7 +174,7 @@ static RPCHelpMan getrawtransaction()
                 "the specified block is available and the transaction is in that block.\n"
                 "\nHint: Use gettransaction for wallet transactions.\n"
 
-                "\nIf verbose is 'true', returns an Object with information about 'txid'.\n"
+                "\nIf verbose is 'true', returns a JSON object with information about 'txid'.\n"
                 "If verbose is 'false' or omitted, returns a string that is serialized, hex-encoded data for 'txid'.",
                 {
                     {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The transaction id"},
@@ -191,7 +191,7 @@ static RPCHelpMan getrawtransaction()
                          {
                              {RPCResult::Type::BOOL, "in_active_chain", /*optional=*/true, "Whether specified block is in the active chain or not (only present with explicit \"blockhash\" argument)"},
                              {RPCResult::Type::STR_HEX, "blockhash", /*optional=*/true, "the block hash"},
-                             {RPCResult::Type::NUM, "confirmations", /*optional=*/true, "The confirmations"},
+                             {RPCResult::Type::NUM, "confirmations", /*optional=*/true, "The number of confirmations"},
                              {RPCResult::Type::NUM_TIME, "blocktime", /*optional=*/true, "The block time expressed in " + UNIX_EPOCH_TIME},
                              {RPCResult::Type::NUM, "time", /*optional=*/true, "Same as \"blocktime\""},
                              {RPCResult::Type::STR_HEX, "hex", "The serialized, hex-encoded data for 'txid'"},
