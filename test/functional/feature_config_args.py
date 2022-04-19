@@ -88,6 +88,12 @@ class ConfArgsTest(BitcoinTestFramework):
             expected_msg='Error: No proxy server specified. Use -proxy=<ip> or -proxy=<ip:port>.',
             extra_args=['-proxy'],
         )
+        with self.nodes[0].assert_debug_log(expected_msgs=["Starting network threads"], unexpected_msgs=['-proxy set\n']):
+            self.start_node(0, extra_args=['-proxy='])
+        self.stop_node(0)
+        with self.nodes[0].assert_debug_log(expected_msgs=["Starting network threads"], unexpected_msgs=['-proxy set\n']):
+            self.start_node(0, extra_args=['-noproxy'])
+        self.stop_node(0)
 
     def test_log_buffer(self):
         self.stop_node(0)
