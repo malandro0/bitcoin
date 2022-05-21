@@ -469,7 +469,7 @@ public:
     const CFeeRate m_dust_relay_feerate;
     const bool m_permit_bare_multisig;
     const std::optional<unsigned> m_max_datacarrier_bytes;
-    const bool m_require_standard;
+    bool m_require_standard;
     RBFPolicy m_rbf_policy;
 
     const Limits m_limits;
