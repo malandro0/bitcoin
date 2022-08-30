@@ -56,7 +56,7 @@ enum class ByteUnit : uint64_t {
 * @param[in] rule   The set of safe chars to choose (default: least restrictive)
 * @return           A new string without unsafe chars
 */
-std::string SanitizeString(std::string_view str, int rule = SAFE_CHARS_DEFAULT);
+std::string SanitizeString(std::string_view str, int rule = SAFE_CHARS_DEFAULT, bool escape = false);
 /** Parse the hex string into bytes (uint8_t or std::byte). Ignores whitespace. */
 template <typename Byte = uint8_t>
 std::vector<Byte> ParseHex(std::string_view str);
