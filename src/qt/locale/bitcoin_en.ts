@@ -921,6 +921,90 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
     </message>
 </context>
 <context>
+    <name>BitcoinUnits</name>
+    <message>
+        <location filename="../bitcoinunits.cpp" line="+35"/>
+        <source>BTC</source>
+        <comment>long unit name</comment>
+        <extracomment>&quot;BTC&quot; as a unit name in dropbox selector</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>mBTC</source>
+        <comment>long unit name</comment>
+        <extracomment>&quot;mBTC&quot; as a unit name in dropbox selector</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>µBTC (bits)</source>
+        <comment>long unit name</comment>
+        <extracomment>&quot;µBTC&quot; as a unit name in dropbox selector</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Satoshi (sat)</source>
+        <comment>long unit name</comment>
+        <extracomment>Base unit name in dropbox selector</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>BTC</source>
+        <comment>unit suffix</comment>
+        <extracomment>&quot;BTC&quot; as a unit suffix</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>mBTC</source>
+        <comment>unit suffix</comment>
+        <extracomment>&quot;mBTC&quot; as a unit suffix</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>bits</source>
+        <comment>unit suffix</comment>
+        <extracomment>&quot;µBTC&quot; as a unit suffix</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>sat</source>
+        <comment>unit suffix</comment>
+        <extracomment>Base unit suffix</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Bitcoins</source>
+        <comment>unit description</comment>
+        <extracomment>Tooltip description of &quot;BTC&quot; unit in dropbox selector</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Milli-Bitcoins (1 / 1</source>
+        <extracomment>Tooltip description of &quot;mBTC&quot; unit in dropbox selector</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Micro-Bitcoins (bits) (1 / 1</source>
+        <extracomment>Tooltip description of &quot;µBTC&quot; unit in dropbox selector</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Satoshi (sat) (1 / 100</source>
+        <extracomment>Tooltip description of base unit in dropbox selector</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>CoinControlDialog</name>
     <message>
         <location filename="../forms/coincontroldialog.ui" line="+14"/>
@@ -1439,7 +1523,12 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
         </translation>
     </message>
     <message>
-        <location line="+72"/>
+        <location line="+17"/>
+        <source>Choose data directory</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+55"/>
         <source>At least %1 GB of data will be stored in this directory, and it will grow over time.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2200,7 +2289,7 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
     <name>PSBTOperationsDialog</name>
     <message>
         <location filename="../forms/psbtoperationsdialog.ui" line="+14"/>
-        <source>Dialog</source>
+        <source>PSBT Operations</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2229,7 +2318,7 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../psbtoperationsdialog.cpp" line="+61"/>
+        <location filename="../psbtoperationsdialog.cpp" line="+60"/>
         <source>Failed to load transaction: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2482,7 +2571,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../bitcoinunits.cpp" line="+197"/>
+        <location filename="../bitcoinunits.cpp" line="+138"/>
         <source>Amount</source>
         <translation type="unfinished">Amount</translation>
     </message>
@@ -2502,12 +2591,42 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+6"/>
-        <source>Internal</source>
+        <location line="+2"/>
+        <source>IPv4</source>
+        <comment>network name</comment>
+        <extracomment>Name of IPv4 network in peer info</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+13"/>
+        <location line="+2"/>
+        <source>IPv6</source>
+        <comment>network name</comment>
+        <extracomment>Name of IPv6 network in peer info</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Onion</source>
+        <comment>network name</comment>
+        <extracomment>Name of Tor network in peer info</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>I2P</source>
+        <comment>network name</comment>
+        <extracomment>Name of I2P network in peer info</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>CJDNS</source>
+        <comment>network name</comment>
+        <extracomment>Name of CJDNS network in peer info</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+14"/>
         <source>Inbound</source>
         <extracomment>An inbound connection from a peer. An inbound connection is a connection initiated by a peer.</extracomment>
         <translation type="unfinished"></translation>
@@ -2649,11 +2768,13 @@ If you are receiving this error you should request the merchant provide a BIP21 
     </message>
     <message>
         <location line="+2"/>
+        <location filename="../rpcconsole.cpp" line="+989"/>
         <source>%1 kB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+2"/>
+        <location filename="../rpcconsole.cpp" line="+2"/>
         <source>%1 MB</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2898,7 +3019,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
     </message>
     <message>
         <location line="+68"/>
-        <location filename="../rpcconsole.cpp" line="+1155"/>
+        <location filename="../rpcconsole.cpp" line="+165"/>
         <source>Select a peer to view detailed information.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3131,7 +3252,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../rpcconsole.cpp" line="-202"/>
+        <location filename="../rpcconsole.cpp" line="-203"/>
         <source>In:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3303,7 +3424,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+78"/>
+        <location line="+79"/>
         <source>Executing command without any wallet</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3333,7 +3454,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-146"/>
+        <location line="-147"/>
         <source>Welcome to the %1 RPC console.
 Use up and down arrows to navigate history, and %2 to clear screen.
 Use %3 and %4 to increase or decrease the font size.
@@ -3345,7 +3466,7 @@ For more information on using this console, type %6.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+156"/>
+        <location line="+157"/>
         <source>Executing…</source>
         <extracomment>A console message indicating an entered command is currently being executed.</extracomment>
         <translation type="unfinished"></translation>
@@ -3480,7 +3601,47 @@ For more information on using this console, type %6.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+125"/>
+        <location line="+46"/>
+        <source>Base58 (Legacy)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Not recommended due to higher fees and less protection against typos.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Base58 (P2SH-SegWit)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Generates an address compatible with older wallets.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Bech32 (SegWit)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Generates a native segwit address (BIP-173). Some old wallets don&apos;t support it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Bech32m (Taproot)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Bech32m (BIP-350) is an upgrade to Bech32, wallet support is still limited.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+75"/>
         <source>Could not unlock wallet.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3633,7 +3794,7 @@ For more information on using this console, type %6.
     <name>SendCoinsDialog</name>
     <message>
         <location filename="../forms/sendcoinsdialog.ui" line="+14"/>
-        <location filename="../sendcoinsdialog.cpp" line="+757"/>
+        <location filename="../sendcoinsdialog.cpp" line="+763"/>
         <source>Send Coins</source>
         <translation>Send Coins</translation>
     </message>
@@ -3820,7 +3981,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of &quot;100 
         <translation>S&amp;end</translation>
     </message>
     <message>
-        <location filename="../sendcoinsdialog.cpp" line="-658"/>
+        <location filename="../sendcoinsdialog.cpp" line="-664"/>
         <source>Copy quantity</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3902,12 +4063,12 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of &quot;100 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+66"/>
+        <location line="+67"/>
         <source>To review recipient list click &quot;Show Details…&quot;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+60"/>
+        <location line="+62"/>
         <source>Sign failed</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3918,13 +4079,13 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of &quot;100 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+6"/>
         <source>External signer failure</source>
         <extracomment>&quot;External signer&quot; means using devices such as hardware wallets.</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-34"/>
+        <location line="-36"/>
         <source>Save Transaction Data</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3935,17 +4096,18 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of &quot;100 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+8"/>
         <source>PSBT saved</source>
+        <extracomment>Popup message when a PSBT has been saved to a file</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+266"/>
+        <location line="+269"/>
         <source>External balance:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-315"/>
+        <location line="-320"/>
         <source>or</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3955,7 +4117,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of &quot;100 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-30"/>
+        <location line="-31"/>
         <source>Please, review your transaction proposal. This will produce a Partially Signed Bitcoin Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <extracomment>Text to inform a user attempting to create a transaction of their current options. At this stage, a user can only create a PSBT. This string is displayed when private keys are disabled and an external signer is not available.</extracomment>
         <translation type="unfinished"></translation>
@@ -3984,7 +4146,14 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of &quot;100 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+16"/>
+        <location line="+5"/>
+        <source>%1 kvB</source>
+        <comment>PSBT transaction creation</comment>
+        <extracomment>When reviewing a newly created PSBT (via Send flow), the transaction fee is shown, with &quot;virtual size&quot; of the transaction displayed for context</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+12"/>
         <source>Not signalling Replace-By-Fee, BIP-125.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3994,7 +4163,29 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of &quot;100 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+99"/>
+        <location line="+24"/>
+        <source>Unsigned Transaction</source>
+        <comment>PSBT copied</comment>
+        <extracomment>Caption of &quot;PSBT has been copied&quot; messagebox</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The PSBT has been copied to the clipboard. You can also save it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+29"/>
+        <source>PSBT saved to disk</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+32"/>
+        <source>Failed to sign PSBT</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+18"/>
         <source>Confirm send coins</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4038,8 +4229,14 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of &quot;100 
         <source>A fee higher than %1 is considered an absurdly high fee.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <location line="+74"/>
+        <location line="+35"/>
+        <source>%1/kvB</source>
+        <translation type="unfinished"></translation>
+    </message>
     <message numerus="yes">
-        <location line="+123"/>
+        <location line="+14"/>
         <source>Estimated to begin confirmation within %n block(s).</source>
         <translation>
             <numerusform>Estimated to begin confirmation within %n block.</numerusform>
@@ -4482,17 +4679,19 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of &quot;100 
     </message>
     <message>
         <location line="-88"/>
+        <location line="+95"/>
         <source>own address</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="-95"/>
         <location line="+69"/>
+        <location line="+28"/>
         <source>watch-only</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-67"/>
+        <location line="-95"/>
         <source>label</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5111,6 +5310,12 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location line="+0"/>
+        <source>Copied to clipboard</source>
+        <comment>Fee-bump PSBT saved</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <location line="+8"/>
         <source>Can&apos;t sign transaction.</source>
         <translation type="unfinished"></translation>
@@ -5228,7 +5433,7 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+6"/>
         <source>Error: Dumpfile format record is incorrect. Got &quot;%s&quot;, expected &quot;format&quot;.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5243,12 +5448,12 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+6"/>
         <source>Error: Legacy wallets only support the &quot;legacy&quot;, &quot;p2sh-segwit&quot;, and &quot;bech32&quot; address types</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+12"/>
         <source>Fee estimation failed. Fallbackfee is disabled. Wait a few blocks or enable -fallbackfee.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5378,7 +5583,7 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+6"/>
         <source>Unsupported chainstate database format found. Please restart with -reindex-chainstate. This will rebuild the chainstate database.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5413,7 +5618,7 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+9"/>
         <source>%s is set very high!</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5448,12 +5653,12 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-65"/>
+        <location line="-74"/>
         <source>The -txindex upgrade started by a previous version cannot be completed. Restart with the previous version or run a full -reindex.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-104"/>
+        <location line="-116"/>
         <source>%s request to listen on port %u. This port is considered &quot;bad&quot; and thus it is unlikely that any Bitcoin Core peers connect to it. See doc/p2p-bad-ports.md for details and a full list.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5488,12 +5693,49 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+19"/>
+        <location line="+9"/>
+        <source>Error: Address book data in wallet cannot be identified to belong to migrated wallets</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>Error: Duplicate descriptors created during migration. Your wallet may be corrupted.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Error: Transaction %s in wallet cannot be identified to belong to migrated wallets</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Error: Unable to produce descriptors for this legacy wallet. Make sure the wallet is unlocked first</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
         <source>Failed to rename invalid peers.dat file. Please move or delete it and try again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+114"/>
+        <location line="+86"/>
+        <source>Unsupported category-specific logging level -loglevel=%s. Expected -loglevel=&lt;category&gt;:&lt;loglevel&gt;. Valid categories: %s. Valid loglevels: %s.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+24"/>
+        <source>
+Unable to cleanup failed migration</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>
+Unable to restore backup of wallet.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+10"/>
         <source>Config setting for %s only applied on %s network when in [%s] section.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5594,6 +5836,16 @@ Go to File &gt; Open Wallet to load a wallet.
     </message>
     <message>
         <location line="+1"/>
+        <source>Error: Could not add watchonly tx to watchonly wallet</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Error: Could not delete watchonly transactions</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Error: Couldn&apos;t create cursor into database</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5605,6 +5857,11 @@ Go to File &gt; Open Wallet to load a wallet.
     <message>
         <location line="+1"/>
         <source>Error: Dumpfile checksum does not match. Computed %s, expected %s</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Error: Failed to create new watchonly wallet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5634,7 +5891,42 @@ Go to File &gt; Open Wallet to load a wallet.
     </message>
     <message>
         <location line="+1"/>
+        <source>Error: Not all watchonly txs could be deleted</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Error: This wallet already uses SQLite</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Error: This wallet is already a descriptor wallet</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Error: Unable to begin reading all records in the database</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Error: Unable to make a backup of your wallet</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Error: Unable to parse version %u as a uint32_t</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Error: Unable to read all records in the database</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Error: Unable to remove watchonly address book data</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5994,6 +6286,11 @@ Go to File &gt; Open Wallet to load a wallet.
     </message>
     <message>
         <location line="+1"/>
+        <source>Unable to unload the wallet before migrating</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Unknown -blockfilterindex value %s.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6015,6 +6312,11 @@ Go to File &gt; Open Wallet to load a wallet.
     <message>
         <location line="+1"/>
         <source>Unknown new rules activated (versionbit %i)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Unsupported global logging level -loglevel=%s. Valid values: %s.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
