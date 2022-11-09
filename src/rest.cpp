@@ -598,8 +598,8 @@ static bool rest_mempool(const std::any& context, HTTPRequest* req, const std::s
 
     std::string param;
     const RESTResponseFormat rf = ParseDataFormat(param, str_uri_part);
-    if (param != "contents" && param != "info") {
-        return RESTERR(req, HTTP_BAD_REQUEST, "Invalid URI format. Expected /rest/mempool/<info|contents>.json");
+    if (param != "contents" && param != "info" && param != "info/with_fee_histogram") {
+        return RESTERR(req, HTTP_BAD_REQUEST, "Invalid URI format. Expected /rest/mempool/<info|info/with_fee_histogram|contents>.json");
     }
 
     const CTxMemPool* mempool = GetMemPool(context, req);
@@ -610,6 +610,8 @@ static bool rest_mempool(const std::any& context, HTTPRequest* req, const std::s
         std::string str_json;
         if (param == "contents") {
             str_json = MempoolToJSON(*mempool, true).write() + "\n";
+        } else if (param == "info/with_fee_histogram") {
+            str_json = MempoolInfoToJSON(*mempool, MempoolInfoToJSON_const_histogram_floors).write() + "\n";
         } else {
             str_json = MempoolInfoToJSON(*mempool, std::nullopt).write() + "\n";
         }
