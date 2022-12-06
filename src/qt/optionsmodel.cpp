@@ -227,6 +227,12 @@ bool OptionsModel::Init(bilingual_str& error)
     m_use_embedded_monospaced_font = settings.value("UseEmbeddedMonospacedFont").toBool();
     Q_EMIT useEmbeddedMonospacedFontChanged(m_use_embedded_monospaced_font);
 
+    if (!settings.contains("PeersTabAlternatingRowColors")) {
+        settings.setValue("PeersTabAlternatingRowColors", "false");
+    }
+    m_peers_tab_alternating_row_colors = settings.value("PeersTabAlternatingRowColors").toBool();
+    Q_EMIT peersTabAlternatingRowColorsChanged(m_peers_tab_alternating_row_colors);
+
     return true;
 }
 
@@ -419,6 +425,8 @@ QVariant OptionsModel::getOption(OptionID option) const
         return QString::fromStdString(SettingToString(setting(), ""));
     case UseEmbeddedMonospacedFont:
         return m_use_embedded_monospaced_font;
+    case PeersTabAlternatingRowColors:
+        return m_peers_tab_alternating_row_colors;
     case CoinControlFeatures:
         return fCoinControlFeatures;
     case EnablePSBTControls:
@@ -568,6 +576,11 @@ bool OptionsModel::setOption(OptionID option, const QVariant& value)
         m_use_embedded_monospaced_font = value.toBool();
         settings.setValue("UseEmbeddedMonospacedFont", m_use_embedded_monospaced_font);
         Q_EMIT useEmbeddedMonospacedFontChanged(m_use_embedded_monospaced_font);
+        break;
+    case PeersTabAlternatingRowColors:
+        m_peers_tab_alternating_row_colors = value.toBool();
+        settings.setValue("PeersTabAlternatingRowColors", m_peers_tab_alternating_row_colors);
+        Q_EMIT peersTabAlternatingRowColorsChanged(m_peers_tab_alternating_row_colors);
         break;
     case CoinControlFeatures:
         fCoinControlFeatures = value.toBool();
