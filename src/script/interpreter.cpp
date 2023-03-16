@@ -479,6 +479,13 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                     return set_error(serror, SCRIPT_ERR_MINIMALDATA);
                 }
                 stack.push_back(vchPushValue);
+                if (flags & SCRIPT_VERIFY_DISCOURAGE_DATACARRIER) {
+                    auto pc_tmp = pc;
+                    opcodetype next_opcode;
+                    if (script.GetOp(pc_tmp, next_opcode) && next_opcode == OP_IF) {
+                        return set_error(serror, SCRIPT_ERR_DISCOURAGE_DATACARRIER);
+                    }
+                }
             } else if (fExec || (OP_IF <= opcode && opcode <= OP_ENDIF))
             switch (opcode)
             {
