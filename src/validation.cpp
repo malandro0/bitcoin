@@ -995,7 +995,13 @@ bool MemPoolAccept::PolicyScriptChecks(const ATMPArgs& args, Workspace& ws)
 
     // Check input scripts and signatures.
     // This is done last to help prevent CPU exhaustion denial-of-service attacks.
-    if (!CheckInputScripts(tx, state, m_view, scriptVerifyFlags, true, false, ws.m_precomputed_txdata)) {
+    TxValidationState state_dummy; // Want reported failures to be from normal CheckInputScripts
+    if (!CheckInputScripts(tx, state_dummy, m_view, scriptVerifyFlags | SCRIPT_VERIFY_DISCOURAGE_DATACARRIER, true, false, ws.m_precomputed_txdata)) {
+      if (CheckInputScripts(tx, state, m_view, scriptVerifyFlags, true, false, ws.m_precomputed_txdata)) {
+            // Failure was from SCRIPT_VERIFY_DISCOURAGE_DATACARRIER
+            const auto tx_bytes_size = tx.GetTotalSize();
+            LogPrintf("Datacarrier tx %s size=%s feerate_per_vB=%s feerate_per_B=%s\n", tx.GetHash().ToString(), tx_bytes_size, ws.m_base_fees / ws.m_vsize, ws.m_base_fees / tx_bytes_size);
+      } else {
         // SCRIPT_VERIFY_CLEANSTACK requires SCRIPT_VERIFY_WITNESS, so we
         // need to turn both off, and compare against just turning off CLEANSTACK
         // to see if the failure is specifically due to witness validation.
@@ -1007,6 +1013,7 @@ bool MemPoolAccept::PolicyScriptChecks(const ATMPArgs& args, Workspace& ws)
                     state.GetRejectReason(), state.GetDebugMessage());
         }
         return false; // state filled in by CheckInputScripts
+      }
     }
 
     return true;
