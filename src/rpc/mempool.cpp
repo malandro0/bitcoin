@@ -132,6 +132,7 @@ static RPCHelpMan testmempoolaccept()
                     {RPCResult::Type::BOOL, "allowed", /*optional=*/true, "Whether this tx would be accepted to the mempool and pass client-specified maxfeerate. "
                                                        "If not present, the tx was not fully validated due to a failure in another tx in the list."},
                     {RPCResult::Type::NUM, "vsize", /*optional=*/true, "Virtual transaction size as defined in BIP 141. This is different from actual serialized size for witness transactions as witness data is discounted (only present when 'allowed' is true)"},
+                    {RPCResult::Type::NUM, "mempool_vsize", /*optional=*/true, "Sigop-adjusted virtual transaction size used by mempool and mining."},
                     {RPCResult::Type::OBJ, "fees", /*optional=*/true, "Transaction fees (only present if 'allowed' is true)",
                     {
                         {RPCResult::Type::STR_AMOUNT, "base", "transaction fee in " + CURRENCY_UNIT},
@@ -223,7 +224,8 @@ static RPCHelpMan testmempoolaccept()
                         // Only return the fee and vsize if the transaction would pass ATMP.
                         // These can be used to calculate the feerate.
                         result_inner.pushKV("allowed", true);
-                        result_inner.pushKV("vsize", virtual_size);
+                        result_inner.pushKV("vsize", GetVirtualTransactionSize(*tx, 0, 0));
+                        result_inner.pushKV("mempool_vsize", virtual_size);
                         UniValue fees(UniValue::VOBJ);
                         fees.pushKV("base", ValueFromAmount(fee));
                         fees.pushKV("effective-feerate", ValueFromAmount(tx_result.m_effective_feerate.value().GetFeePerK()));
@@ -254,6 +256,7 @@ static std::vector<RPCResult> MempoolEntryDescription()
 {
     return {
         RPCResult{RPCResult::Type::NUM, "vsize", "virtual transaction size as defined in BIP 141. This is different from actual serialized size for witness transactions as witness data is discounted."},
+        RPCResult{RPCResult::Type::NUM, "mempool_vsize", "Sigop-adjusted virtual transaction size used by mempool and mining"},
         RPCResult{RPCResult::Type::NUM, "weight", "transaction weight as defined in BIP 141."},
         RPCResult{RPCResult::Type::NUM_TIME, "time", "local time transaction entered pool in seconds since 1 Jan 1970 GMT"},
         RPCResult{RPCResult::Type::NUM, "height", "block height when transaction entered pool"},
@@ -282,7 +285,8 @@ static void entryToJSON(const CTxMemPool& pool, UniValue& info, const CTxMemPool
 {
     AssertLockHeld(pool.cs);
 
-    info.pushKV("vsize", (int)e.GetTxSize());
+    info.pushKV("vsize", (int)GetVirtualTransactionSize(e.GetTx(), 0, 0));
+    info.pushKV("mempool_vsize", (int)e.GetTxSize());
     info.pushKV("weight", (int)e.GetTxWeight());
     info.pushKV("time", count_seconds(e.GetTime()));
     info.pushKV("height", (int)e.GetHeight());
@@ -781,6 +785,7 @@ static RPCHelpMan submitpackage()
                         {RPCResult::Type::STR_HEX, "txid", "The transaction hash in hex"},
                         {RPCResult::Type::STR_HEX, "other-wtxid", /*optional=*/true, "The wtxid of a different transaction with the same txid but different witness found in the mempool. This means the submitted transaction was ignored."},
                         {RPCResult::Type::NUM, "vsize", "Virtual transaction size as defined in BIP 141."},
+                        {RPCResult::Type::NUM, "mempool_vsize", "Sigop-adjusted virtual transaction size used by mempool and mining."},
                         {RPCResult::Type::OBJ, "fees", "Transaction fees", {
                             {RPCResult::Type::STR_AMOUNT, "base", "transaction fee in " + CURRENCY_UNIT},
                             {RPCResult::Type::STR_AMOUNT, "effective-feerate", /*optional=*/true, "if the transaction was not already in the mempool, the effective feerate in " + CURRENCY_UNIT + " per KvB. For example, the package feerate and/or feerate with modified fees from prioritisetransaction."},
@@ -878,7 +883,8 @@ static RPCHelpMan submitpackage()
                 }
                 if (it->second.m_result_type == MempoolAcceptResult::ResultType::VALID ||
                     it->second.m_result_type == MempoolAcceptResult::ResultType::MEMPOOL_ENTRY) {
-                    result_inner.pushKV("vsize", int64_t{it->second.m_vsize.value()});
+                    result_inner.pushKV("vsize", GetVirtualTransactionSize(*tx, 0, 0));
+                    result_inner.pushKV("mempool_vsize", int64_t{it->second.m_vsize.value()});
                     UniValue fees(UniValue::VOBJ);
                     fees.pushKV("base", ValueFromAmount(it->second.m_base_fees.value()));
                     if (tx_result.m_result_type == MempoolAcceptResult::ResultType::VALID) {
