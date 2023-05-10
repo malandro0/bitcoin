@@ -92,7 +92,7 @@ public:
     bool ReadLastBlockFile(int &nFile);
     bool WriteReindexing(bool fReindexing);
     void ReadReindexing(bool &fReindexing);
-    bool WriteFlag(const std::string &name, bool fValue);
+    bool WriteFlag(const std::string &name, bool fValue, bool allow_ignore = true);
     bool ReadFlag(const std::string &name, bool &fValue);
     bool LoadBlockIndexGuts(const Consensus::Params& consensusParams, std::function<CBlockIndex*(const uint256&)> insertBlockIndex)
         EXCLUSIVE_LOCKS_REQUIRED(::cs_main);

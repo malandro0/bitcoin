@@ -10,6 +10,7 @@
 #include <pow.h>
 #include <random.h>
 #include <shutdown.h>
+#include <span.h>
 #include <uint256.h>
 #include <util/translation.h>
 #include <util/vector.h>
@@ -26,8 +27,10 @@ static constexpr uint8_t DB_FLAG{'F'};
 static constexpr uint8_t DB_REINDEX_FLAG{'R'};
 static constexpr uint8_t DB_LAST_BLOCK{'l'};
 
-// Keys used in previous version that might still be found in the DB:
+// Before v0.15.0, this was used for chainstate, but now it is used for versioning
 static constexpr uint8_t DB_COINS{'c'};
+
+// Keys used in previous version that might still be found in the DB:
 static constexpr uint8_t DB_TXINDEX_BLOCK{'T'};
 //               uint8_t DB_TXINDEX{'t'}
 
@@ -55,7 +58,15 @@ bool CCoinsViewDB::NeedsUpgrade()
     // DB_COINS was deprecated in v0.15.0, commit
     // 1088b02f0ccd7358d2b7076bb9e122d59d502d02
     cursor->Seek(std::make_pair(DB_COINS, uint256{}));
-    return cursor->Valid();
+    while (cursor->Valid()) {
+        std::pair<unsigned char, uint256> key;
+        if (cursor->GetKey(key) && key.first == DB_COINS && cursor->GetValueSize() == 0) {
+            // Versioning entry
+            // TODO: if (key.second == SUPPORTED) { cursor->Next(); continue; }
+        }
+        return true;
+    }
+    return false;
 }
 
 namespace {
@@ -279,8 +290,21 @@ bool CBlockTreeDB::WriteBatchSync(const std::vector<std::pair<int, const CBlockF
     return WriteBatch(batch, true);
 }
 
-bool CBlockTreeDB::WriteFlag(const std::string &name, bool fValue) {
-    return Write(std::make_pair(DB_FLAG, name), fValue ? uint8_t{'1'} : uint8_t{'0'});
+bool CBlockTreeDB::WriteFlag(const std::string &name, bool fValue, bool allow_ignore) {
+    CDBBatch batch(*this);
+    batch.Write(std::make_pair(DB_FLAG, name), fValue ? uint8_t{'1'} : uint8_t{'0'});
+    if (!allow_ignore) {
+        // Ensure old versions will not attempt to load without understanding this
+
+        // NOTE: Key must include correct 256-bit length to avoid old versions simply moving on
+        uint256 flag_as_u256{};
+        assert(name.size() <= flag_as_u256.size());
+        std::copy(name.begin(), name.end(), flag_as_u256.begin());
+
+        // NOTE: Value is null-length to ensure DB_COINS-supporting versions fail to load/upgrade
+        batch.Write(std::make_pair(DB_COINS, flag_as_u256), Span<const unsigned char>());
+    }
+    return WriteBatch(batch, true);
 }
 
 bool CBlockTreeDB::ReadFlag(const std::string &name, bool &fValue) {
