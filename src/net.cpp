@@ -452,7 +452,7 @@ static CAddress GetBindAddress(const Sock& sock)
     return addr_bind;
 }
 
-CNode* CConnman::ConnectNode(CAddress addrConnect, const char *pszDest, bool fCountFailure, ConnectionType conn_type)
+CNode* CConnman::ConnectNode(CAddress addrConnect, const char *pszDest, bool fCountFailure, ConnectionType conn_type, ServiceFlags& out_node_services)
 {
     AssertLockNotHeld(m_unused_i2p_sessions_mutex);
     assert(conn_type != ConnectionType::INBOUND);
@@ -576,9 +576,9 @@ CNode* CConnman::ConnectNode(CAddress addrConnect, const char *pszDest, bool fCo
     }
 
     NetPermissionFlags permission_flags = NetPermissionFlags::None;
-    ServiceFlags node_services = nLocalServices;
+    out_node_services = nLocalServices;
     AddWhitelistPermissionFlags(permission_flags, addrConnect, vWhitelistedRangeOutgoing);
-    InitializePermissionFlags(permission_flags, node_services);
+    InitializePermissionFlags(permission_flags, out_node_services);
 
     // Add node
     NodeId id = GetNewNodeId();
@@ -2040,14 +2040,15 @@ void CConnman::OpenNetworkConnection(const CAddress& addrConnect, bool fCountFai
     } else if (FindNode(std::string(pszDest)))
         return;
 
-    CNode* pnode = ConnectNode(addrConnect, pszDest, fCountFailure, conn_type);
+    ServiceFlags node_services;
+    CNode* pnode = ConnectNode(addrConnect, pszDest, fCountFailure, conn_type, node_services);
 
     if (!pnode)
         return;
     if (grantOutbound)
         grantOutbound->MoveTo(pnode->grantOutbound);
 
-    m_msgproc->InitializeNode(*pnode, nLocalServices);
+    m_msgproc->InitializeNode(*pnode, node_services);
     {
         LOCK(m_nodes_mutex);
         m_nodes.push_back(pnode);
