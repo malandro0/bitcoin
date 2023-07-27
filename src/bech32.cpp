@@ -14,6 +14,25 @@
 namespace bech32
 {
 
+namespace internal {
+
+/** The Bech32 and Bech32m character set for encoding. */
+const char* CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+
+/** The Bech32 and Bech32m character set for decoding. */
+const int8_t CHARSET_REV[128] = {
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    15, -1, 10, 17, 21, 20, 26, 30,  7,  5, -1, -1, -1, -1, -1, -1,
+    -1, 29, -1, 24, 13, 25,  9,  8, 23, -1, 18, 22, 31, 27, 19, -1,
+     1,  0,  3, 16, 11, 28, 12, 14,  6,  4,  2, -1, -1, -1, -1, -1,
+    -1, 29, -1, 24, 13, 25,  9,  8, 23, -1, 18, 22, 31, 27, 19, -1,
+     1,  0,  3, 16, 11, 28, 12, 14,  6,  4,  2, -1, -1, -1, -1, -1
+};
+
+} // namespace internal
+
 namespace
 {
 
@@ -293,52 +312,9 @@ bool CheckCharacters(const std::string& str, std::vector<int>& errors)
     return errors.empty();
 }
 
-/** Verify a checksum. */
-Encoding VerifyChecksum(const std::string& hrp, const data& values)
-{
-    // PolyMod computes what value to xor into the final values to make the checksum 0. However,
-    // if we required that the checksum was 0, it would be the case that appending a 0 to a valid
-    // list of values would result in a new valid list. For that reason, Bech32 requires the
-    // resulting checksum to be 1 instead. In Bech32m, this constant was amended. See
-    // https://gist.github.com/sipa/14c248c288c3880a3b191f978a34508e for details.
-    const uint32_t check = PolyMod(Cat(internal::ExpandHRP(hrp), values));
-    if (check == EncodingConstant(Encoding::BECH32)) return Encoding::BECH32;
-    if (check == EncodingConstant(Encoding::BECH32M)) return Encoding::BECH32M;
-    return Encoding::INVALID;
-}
-
-/** Create a checksum. */
-data CreateChecksum(Encoding encoding, const std::string& hrp, const data& values)
-{
-    data enc = Cat(internal::ExpandHRP(hrp), values);
-    enc.resize(enc.size() + 6); // Append 6 zeroes
-    uint32_t mod = PolyMod(enc) ^ EncodingConstant(encoding); // Determine what to XOR into those 6 zeroes.
-    data ret(6);
-    for (size_t i = 0; i < 6; ++i) {
-        // Convert the 5-bit groups in mod to checksum values.
-        ret[i] = (mod >> (5 * (5 - i))) & 31;
-    }
-    return ret;
-}
-
 } // namespace
 
 namespace internal {
-
-/** The Bech32 and Bech32m character set for encoding. */
-const char* CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
-
-/** The Bech32 and Bech32m character set for decoding. */
-const int8_t CHARSET_REV[128] = {
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    15, -1, 10, 17, 21, 20, 26, 30,  7,  5, -1, -1, -1, -1, -1, -1,
-    -1, 29, -1, 24, 13, 25,  9,  8, 23, -1, 18, 22, 31, 27, 19, -1,
-     1,  0,  3, 16, 11, 28, 12, 14,  6,  4,  2, -1, -1, -1, -1, -1,
-    -1, 29, -1, 24, 13, 25,  9,  8, 23, -1, 18, 22, 31, 27, 19, -1,
-     1,  0,  3, 16, 11, 28, 12, 14,  6,  4,  2, -1, -1, -1, -1, -1
-};
 
 /** Expand a HRP for use in checksum computation. */
 data ExpandHRP(const std::string& hrp)
@@ -355,6 +331,45 @@ data ExpandHRP(const std::string& hrp)
     return ret;
 }
 
+} // namespace internal
+
+namespace
+{
+
+using internal::CHARSET_REV;
+using internal::ExpandHRP;
+
+/** Verify a checksum. */
+Encoding VerifyChecksum(const std::string& hrp, const data& values)
+{
+    // PolyMod computes what value to xor into the final values to make the checksum 0. However,
+    // if we required that the checksum was 0, it would be the case that appending a 0 to a valid
+    // list of values would result in a new valid list. For that reason, Bech32 requires the
+    // resulting checksum to be 1 instead. In Bech32m, this constant was amended. See
+    // https://gist.github.com/sipa/14c248c288c3880a3b191f978a34508e for details.
+    const uint32_t check = PolyMod(Cat(ExpandHRP(hrp), values));
+    if (check == EncodingConstant(Encoding::BECH32)) return Encoding::BECH32;
+    if (check == EncodingConstant(Encoding::BECH32M)) return Encoding::BECH32M;
+    return Encoding::INVALID;
+}
+
+/** Create a checksum. */
+data CreateChecksum(Encoding encoding, const std::string& hrp, const data& values)
+{
+    data enc = Cat(ExpandHRP(hrp), values);
+    enc.resize(enc.size() + 6); // Append 6 zeroes
+    uint32_t mod = PolyMod(enc) ^ EncodingConstant(encoding); // Determine what to XOR into those 6 zeroes.
+    data ret(6);
+    for (size_t i = 0; i < 6; ++i) {
+        // Convert the 5-bit groups in mod to checksum values.
+        ret[i] = (mod >> (5 * (5 - i))) & 31;
+    }
+    return ret;
+}
+
+} // namespace
+
+namespace internal {
 
 /** Encode a hrpstring without concerning ourselves with checksum validity */
 std::string Encode(const std::string& hrp, const data& values, const data& checksum) {
@@ -443,7 +458,7 @@ std::pair<std::string, std::vector<int>> LocateErrors(const std::string& str) {
     data values(length);
     for (size_t i = pos + 1; i < str.size(); ++i) {
         unsigned char c = str[i];
-        int8_t rev = internal::CHARSET_REV[c];
+        int8_t rev = CHARSET_REV[c];
         if (rev == -1) {
             error_locations.push_back(i);
             return std::make_pair("Invalid Base 32 character", std::move(error_locations));
@@ -458,7 +473,7 @@ std::pair<std::string, std::vector<int>> LocateErrors(const std::string& str) {
         std::vector<int> possible_errors;
         // Recall that (ExpandHRP(hrp) ++ values) is interpreted as a list of coefficients of a polynomial
         // over GF(32). PolyMod computes the "remainder" of this polynomial modulo the generator G(x).
-        uint32_t residue = PolyMod(Cat(internal::ExpandHRP(hrp), values)) ^ EncodingConstant(encoding);
+        uint32_t residue = PolyMod(Cat(ExpandHRP(hrp), values)) ^ EncodingConstant(encoding);
 
         // All valid codewords should be multiples of G(x), so this remainder (after XORing with the encoding
         // constant) should be 0 - hence 0 indicates there are no errors present.
