@@ -63,10 +63,6 @@ public:
 
     //! Get list of units, for drop-down box
     static QList<Unit> availableUnits();
-    //! String for setting(s)
-    static QString toSetting(Unit unit);
-    //! Convert setting(s) string to unit
-    static Unit fromSetting(const QString&);
     //! Long name
     static QString longName(Unit unit);
     //! Short name
