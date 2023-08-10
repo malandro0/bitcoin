@@ -24,6 +24,7 @@
 #include <node/chainstate.h>
 #include <scheduler.h>
 #include <script/sigcache.h>
+#include <util/fs.h>
 #include <util/system.h>
 #include <util/thread.h>
 #include <validation.h>
@@ -46,8 +47,8 @@ int main(int argc, char* argv[])
             << "           BREAK IN FUTURE VERSIONS. DO NOT USE ON YOUR ACTUAL DATADIR." << std::endl;
         return 1;
     }
-    std::filesystem::path abs_datadir = std::filesystem::absolute(argv[1]);
-    std::filesystem::create_directories(abs_datadir);
+    fs::path abs_datadir{fs::absolute(argv[1])};
+    fs::create_directories(abs_datadir);
     gArgs.ForceSetArg("-datadir", abs_datadir.string());
 
 
