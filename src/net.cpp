@@ -370,6 +370,23 @@ bool IsLocal(const CService& addr)
     return mapLocalHost.count(addr) > 0;
 }
 
+static void InitializePermissionFlags(NetPermissionFlags& flags, ServiceFlags& service_flags) {
+    if (NetPermissions::HasFlag(flags, NetPermissionFlags::Implicit)) {
+        NetPermissions::ClearFlag(flags, NetPermissionFlags::Implicit);
+        if (gArgs.GetBoolArg("-whitelistforcerelay", DEFAULT_WHITELISTFORCERELAY)) NetPermissions::AddFlag(flags, NetPermissionFlags::ForceRelay);
+        if (gArgs.GetBoolArg("-whitelistrelay", DEFAULT_WHITELISTRELAY)) NetPermissions::AddFlag(flags, NetPermissionFlags::Relay);
+        NetPermissions::AddFlag(flags, NetPermissionFlags::Mempool);
+        NetPermissions::AddFlag(flags, NetPermissionFlags::NoBan);
+    }
+
+    if (NetPermissions::HasFlag(flags, NetPermissionFlags::BloomFilter)) {
+        service_flags = static_cast<ServiceFlags>(service_flags | NODE_BLOOM);
+    }
+    if (NetPermissions::HasFlag(flags, NetPermissionFlags::BlockFilters)) {
+        service_flags = static_cast<ServiceFlags>(service_flags | NODE_COMPACT_FILTERS);
+    }
+}
+
 CNode* CConnman::FindNode(const CNetAddr& ip)
 {
     LOCK(m_nodes_mutex);
@@ -445,7 +462,7 @@ static CAddress GetBindAddress(const Sock& sock)
     return addr_bind;
 }
 
-CNode* CConnman::ConnectNode(CAddress addrConnect, const char *pszDest, bool fCountFailure, ConnectionType conn_type)
+CNode* CConnman::ConnectNode(CAddress addrConnect, const char *pszDest, bool fCountFailure, ConnectionType conn_type, ServiceFlags& out_node_services)
 {
     AssertLockNotHeld(m_unused_i2p_sessions_mutex);
     assert(conn_type != ConnectionType::INBOUND);
@@ -568,6 +585,11 @@ CNode* CConnman::ConnectNode(CAddress addrConnect, const char *pszDest, bool fCo
         return nullptr;
     }
 
+    NetPermissionFlags permission_flags = NetPermissionFlags::None;
+    out_node_services = nLocalServices;
+    AddWhitelistPermissionFlags(permission_flags, addrConnect, vWhitelistedRangeOutgoing);
+    InitializePermissionFlags(permission_flags, out_node_services);
+
     // Add node
     NodeId id = GetNewNodeId();
     uint64_t nonce = GetDeterministicRandomizer(RANDOMIZER_ID_LOCALHOSTNONCE).Write(id).Finalize();
@@ -584,6 +606,7 @@ CNode* CConnman::ConnectNode(CAddress addrConnect, const char *pszDest, bool fCo
                              conn_type,
                              /*inbound_onion=*/false,
                              CNodeOptions{
+                                 .permission_flags = permission_flags,
                                  .i2p_sam_session = std::move(i2p_transient_session),
                                  .recv_flood_size = nReceiveFloodSize,
                              });
@@ -606,8 +629,8 @@ void CNode::CloseSocketDisconnect()
     m_i2p_sam_session.reset();
 }
 
-void CConnman::AddWhitelistPermissionFlags(NetPermissionFlags& flags, const CNetAddr &addr) const {
-    for (const auto& subnet : vWhitelistedRange) {
+void CConnman::AddWhitelistPermissionFlags(NetPermissionFlags& flags, const CNetAddr &addr, const std::vector<NetWhitelistPermissions>& ranges) const {
+    for (const auto& subnet : ranges) {
         if (subnet.m_subnet.Match(addr)) NetPermissions::AddFlag(flags, subnet.m_flags);
     }
 }
@@ -986,14 +1009,9 @@ void CConnman::CreateNodeFromAcceptedSocket(std::unique_ptr<Sock>&& sock,
     int nInbound = 0;
     int nMaxInbound = nMaxConnections - m_max_outbound;
 
-    AddWhitelistPermissionFlags(permission_flags, addr);
-    if (NetPermissions::HasFlag(permission_flags, NetPermissionFlags::Implicit)) {
-        NetPermissions::ClearFlag(permission_flags, NetPermissionFlags::Implicit);
-        if (gArgs.GetBoolArg("-whitelistforcerelay", DEFAULT_WHITELISTFORCERELAY)) NetPermissions::AddFlag(permission_flags, NetPermissionFlags::ForceRelay);
-        if (gArgs.GetBoolArg("-whitelistrelay", DEFAULT_WHITELISTRELAY)) NetPermissions::AddFlag(permission_flags, NetPermissionFlags::Relay);
-        NetPermissions::AddFlag(permission_flags, NetPermissionFlags::Mempool);
-        NetPermissions::AddFlag(permission_flags, NetPermissionFlags::NoBan);
-    }
+    AddWhitelistPermissionFlags(permission_flags, addr, vWhitelistedRange);
+    ServiceFlags nodeServices = nLocalServices;
+    InitializePermissionFlags(permission_flags, nodeServices);
 
     {
         LOCK(m_nodes_mutex);
@@ -1047,14 +1065,6 @@ void CConnman::CreateNodeFromAcceptedSocket(std::unique_ptr<Sock>&& sock,
 
     NodeId id = GetNewNodeId();
     uint64_t nonce = GetDeterministicRandomizer(RANDOMIZER_ID_LOCALHOSTNONCE).Write(id).Finalize();
-
-    ServiceFlags nodeServices = nLocalServices;
-    if (NetPermissions::HasFlag(permission_flags, NetPermissionFlags::BloomFilter)) {
-        nodeServices = static_cast<ServiceFlags>(nodeServices | NODE_BLOOM);
-    }
-    if (NetPermissions::HasFlag(permission_flags, NetPermissionFlags::BlockFilters)) {
-        nodeServices = static_cast<ServiceFlags>(nodeServices | NODE_COMPACT_FILTERS);
-    }
 
     const bool inbound_onion = std::find(m_onion_binds.begin(), m_onion_binds.end(), addr_bind) != m_onion_binds.end();
     CNode* pnode = new CNode(id,
@@ -2041,14 +2051,15 @@ void CConnman::OpenNetworkConnection(const CAddress& addrConnect, bool fCountFai
     } else if (FindNode(std::string(pszDest)))
         return;
 
-    CNode* pnode = ConnectNode(addrConnect, pszDest, fCountFailure, conn_type);
+    ServiceFlags node_services;
+    CNode* pnode = ConnectNode(addrConnect, pszDest, fCountFailure, conn_type, node_services);
 
     if (!pnode)
         return;
     if (grantOutbound)
         grantOutbound->MoveTo(pnode->grantOutbound);
 
-    m_msgproc->InitializeNode(*pnode, nLocalServices);
+    m_msgproc->InitializeNode(*pnode, node_services);
     {
         LOCK(m_nodes_mutex);
         m_nodes.push_back(pnode);
