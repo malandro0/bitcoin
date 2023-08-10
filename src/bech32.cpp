@@ -14,10 +14,7 @@
 namespace bech32
 {
 
-namespace
-{
-
-typedef std::vector<uint8_t> data;
+namespace internal {
 
 /** The Bech32 and Bech32m character set for encoding. */
 const char* CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
@@ -33,6 +30,13 @@ const int8_t CHARSET_REV[128] = {
     -1, 29, -1, 24, 13, 25,  9,  8, 23, -1, 18, 22, 31, 27, 19, -1,
      1,  0,  3, 16, 11, 28, 12, 14,  6,  4,  2, -1, -1, -1, -1, -1
 };
+
+} // namespace internal
+
+namespace
+{
+
+typedef internal::data data;
 
 /** We work with the finite field GF(1024) defined as a degree 2 extension of the base field GF(32)
  * The defining polynomial of the extension is x^2 + 9x + 23.
@@ -308,6 +312,10 @@ bool CheckCharacters(const std::string& str, std::vector<int>& errors)
     return errors.empty();
 }
 
+} // namespace
+
+namespace internal {
+
 /** Expand a HRP for use in checksum computation. */
 data ExpandHRP(const std::string& hrp)
 {
@@ -322,6 +330,14 @@ data ExpandHRP(const std::string& hrp)
     ret[hrp.size()] = 0;
     return ret;
 }
+
+} // namespace internal
+
+namespace
+{
+
+using internal::CHARSET_REV;
+using internal::ExpandHRP;
 
 /** Verify a checksum. */
 Encoding VerifyChecksum(const std::string& hrp, const data& values)
@@ -353,13 +369,14 @@ data CreateChecksum(Encoding encoding, const std::string& hrp, const data& value
 
 } // namespace
 
-/** Encode a Bech32 or Bech32m string. */
-std::string Encode(Encoding encoding, const std::string& hrp, const data& values) {
+namespace internal {
+
+/** Encode a hrpstring without concerning ourselves with checksum validity */
+std::string Encode(const std::string& hrp, const data& values, const data& checksum) {
     // First ensure that the HRP is all lowercase. BIP-173 and BIP350 require an encoder
     // to return a lowercase Bech32/Bech32m string, but if given an uppercase HRP, the
     // result will always be invalid.
     for (const char& c : hrp) assert(c < 'A' || c > 'Z');
-    data checksum = CreateChecksum(encoding, hrp, values);
     data combined = Cat(values, checksum);
     std::string ret = hrp + '1';
     ret.reserve(ret.size() + combined.size());
@@ -369,12 +386,12 @@ std::string Encode(Encoding encoding, const std::string& hrp, const data& values
     return ret;
 }
 
-/** Decode a Bech32 or Bech32m string. */
-DecodeResult Decode(const std::string& str) {
+/** Decode a hrpstring without concerning ourselves with checksum validity */
+std::pair<std::string, data> Decode(const std::string& str, size_t max_length, size_t checksum_length) {
     std::vector<int> errors;
     if (!CheckCharacters(str, errors)) return {};
     size_t pos = str.rfind('1');
-    if (str.size() > 90 || pos == str.npos || pos == 0 || pos + 7 > str.size()) {
+    if (str.size() > max_length || pos == str.npos || pos == 0 || pos + checksum_length + 1 > str.size()) {
         return {};
     }
     data values(str.size() - 1 - pos);
@@ -391,9 +408,22 @@ DecodeResult Decode(const std::string& str) {
     for (size_t i = 0; i < pos; ++i) {
         hrp += LowerCase(str[i]);
     }
-    Encoding result = VerifyChecksum(hrp, values);
+    return std::make_pair(hrp, values);
+}
+
+} // namespace internal
+
+/** Encode a Bech32 or Bech32m string. */
+std::string Encode(Encoding encoding, const std::string& hrp, const data& values) {
+    return internal::Encode(hrp, values, CreateChecksum(encoding, hrp, values));
+}
+
+/** Decode a Bech32 or Bech32m string. */
+DecodeResult Decode(const std::string& str) {
+    auto res = internal::Decode(str, 90, 6);
+    Encoding result = VerifyChecksum(res.first, res.second);
     if (result == Encoding::INVALID) return {};
-    return {result, std::move(hrp), data(values.begin(), values.end() - 6)};
+    return {result, std::move(res.first), data(res.second.begin(), res.second.end() - 6)};
 }
 
 /** Find index of an incorrect character in a Bech32 string. */
