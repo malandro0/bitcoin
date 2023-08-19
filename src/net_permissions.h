@@ -37,7 +37,7 @@ enum class NetPermissionFlags : uint32_t {
     Addr = (1U << 7),
     // Try harder to evict an existing connection if needed to open
     // an inbound slot from this peer
-    ForceInbound = (1U << 8) | NoBan,
+    ForceInbound = (1U << 10) | NoBan,
 
     // Can query compact filters even if -peerblockfilters is false
     BlockFilters = (1U << 8),
