@@ -1994,6 +1994,11 @@ void StopScriptCheckWorkerThreads()
     scriptcheckqueue.StopWorkerThreads();
 }
 
+size_t ScriptCheckWorkerThreadCount()
+{
+    return scriptcheckqueue.ThreadCount();
+}
+
 /**
  * Threshold condition checker that triggers when unknown versionbits are seen on the network.
  */
