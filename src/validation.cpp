@@ -1267,6 +1267,10 @@ PackageMempoolAcceptResult MemPoolAccept::AcceptMultipleTransactions(const std::
     // package feerate (total modified fees / total virtual size) to check this requirement.
     const auto m_total_vsize = std::accumulate(workspaces.cbegin(), workspaces.cend(), int64_t{0},
         [](int64_t sum, auto& ws) { return sum + ws.m_vsize; });
+    if (m_total_vsize > MAX_PACKAGE_SIZE * 1000) {
+        package_state.Invalid(PackageValidationResult::PCKG_POLICY, "package-too-large");
+        return PackageMempoolAcceptResult(package_state, {});
+    }
     const auto m_total_modified_fees = std::accumulate(workspaces.cbegin(), workspaces.cend(), CAmount{0},
         [](CAmount sum, auto& ws) { return sum + ws.m_modified_fees; });
     const CFeeRate package_feerate(m_total_modified_fees, m_total_vsize);
