@@ -195,13 +195,15 @@ util::Result<CTxMemPool::setEntries> CTxMemPool::CalculateAncestorsAndCheckLimit
 }
 
 bool CTxMemPool::CheckPackageLimits(const Package& package,
+                                    const std::vector<int64_t> &all_tx_vsizes,
                                     const Limits& limits,
                                     std::string &errString) const
 {
     CTxMemPoolEntry::Parents staged_ancestors;
     size_t total_size = 0;
-    for (const auto& tx : package) {
-        total_size += GetVirtualTransactionSize(*tx);
+    for (size_t i = 0; i < package.size(); ++i) {
+        const auto& tx = package[i];
+        total_size += all_tx_vsizes[i];
         for (const auto& input : tx->vin) {
             std::optional<txiter> piter = GetIter(input.prevout.hash);
             if (piter) {
