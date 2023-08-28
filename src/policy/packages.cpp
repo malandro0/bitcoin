@@ -23,7 +23,6 @@ bool CheckPackage(const Package& txns, PackageValidationState& state)
         return state.Invalid(PackageValidationResult::PCKG_POLICY, "package-too-many-transactions");
     }
 
-    // NOTE: total_size here doesn't account for sigops, which require input data; so, it's checked again later in MemPoolAccept::AcceptMultipleTransactions
     const int64_t total_size = std::accumulate(txns.cbegin(), txns.cend(), 0,
                                [](int64_t sum, const auto& tx) { return sum + GetVirtualTransactionSize(*tx); });
     // If the package only contains 1 tx, it's better to report the policy violation on individual tx size.
