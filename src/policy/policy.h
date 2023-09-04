@@ -44,6 +44,8 @@ static constexpr unsigned int DEFAULT_INCREMENTAL_RELAY_FEE{1000};
 static constexpr unsigned int DEFAULT_BYTES_PER_SIGOP{20};
 /** Default for -bytespersigopstrict */
 static constexpr unsigned int DEFAULT_BYTES_PER_SIGOP_STRICT{20};
+/** Default for -datacarriercost (multiplied by WITNESS_SCALE_FACTOR) */
+static constexpr unsigned int DEFAULT_WEIGHT_PER_DATA_BYTE{1};
 /** Default for -datacarrierfullcount */
 static constexpr bool DEFAULT_DATACARRIER_FULLCOUNT{false};
 /** Default for -permitbaremultisig */
