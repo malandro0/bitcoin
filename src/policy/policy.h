@@ -169,5 +169,6 @@ static inline int64_t GetVirtualTransactionInputSize(const CTxIn& tx)
 }
 
 int32_t DatacarrierBytes(const CTransaction& tx, const CCoinsViewCache& view);
+int32_t CalculateExtraTxWeight(const CTransaction& tx, const CCoinsViewCache& view, const unsigned int weight_per_data_byte);
 
 #endif // BITCOIN_POLICY_POLICY_H
