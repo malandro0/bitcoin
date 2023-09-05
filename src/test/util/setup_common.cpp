@@ -425,7 +425,7 @@ std::vector<CTransactionRef> TestChain100Setup::PopulateMempool(FastRandomContex
             LockPoints lp;
             m_node.mempool->addUnchecked(CTxMemPoolEntry(ptx, /*fee=*/(total_in - num_outputs * amount_per_output),
                                                          /*time=*/0, /*entry_priority=*/0, /*entry_height=*/1,
-                                                         /*inChainInputValue=*/0, /*spends_coinbase=*/false, /*sigops_cost=*/4, lp));
+                                                         /*inChainInputValue=*/0, /*spends_coinbase=*/false, /*extra_weight=*/0, /*sigops_cost=*/4, lp));
         }
         --num_transactions;
     }
