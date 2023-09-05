@@ -1,20 +1,20 @@
 25.0 Release Notes
 ==================
 
-Bitcoin Core version 25.0 is now available from:
+Bitcoin Knots version 25.0.knots20230905 is now available from:
 
-  <https://bitcoincore.org/bin/bitcoin-core-25.0/>
+  <https://bitcoinknots.org/files/25.x/25.0.knots20230905/>
 
 This release includes new features, various bug fixes and performance
 improvements, as well as updated translations.
 
 Please report bugs using the issue tracker at GitHub:
 
-  <https://github.com/bitcoin/bitcoin/issues>
+  <https://github.com/bitcoinknots/bitcoin/issues>
 
 To receive security and update notifications, please subscribe to:
 
-  <https://bitcoincore.org/en/list/announcements/join/>
+  <https://bitcoinknots.org/list/announcements/join/>
 
 How to Upgrade
 ==============
@@ -24,57 +24,88 @@ shut down (which might take a few minutes in some cases), then run the
 installer (on Windows) or just copy over `/Applications/Bitcoin-Qt` (on macOS)
 or `bitcoind`/`bitcoin-qt` (on Linux).
 
-Upgrading directly from a version of Bitcoin Core that has reached its EOL is
+Upgrading directly from very old versions of Bitcoin Core or Knots is
 possible, but it might take some time if the data directory needs to be migrated. Old
-wallet versions of Bitcoin Core are generally supported.
+wallet versions of Bitcoin Knots are generally supported.
 
 Compatibility
 ==============
 
-Bitcoin Core is supported and extensively tested on operating systems
-using the Linux kernel, macOS 10.15+, and Windows 7 and newer.  Bitcoin
-Core should also work on most other Unix-like systems but is not as
-frequently tested on them.  It is not recommended to use Bitcoin Core on
-unsupported systems.
+Bitcoin Knots is supported on operating systems using the Linux kernel,
+macOS 10.15+, and Windows 7 and newer. It is not recommended to use
+Bitcoin Knots on unsupported systems.
+
+Known Bugs
+==========
+
+In various locations, including the GUI's transaction details dialog, transaction
+virtual sizes may not account for an unusually high number of sigops (ie, as
+determined by the `-bytespersigop` policy). This could result in reporting a
+lower virtual size than is actually used for mempool or mining purposes.
 
 Notable changes
 ===============
 
+Security vulnerabilities fixed
+------------------------------
+
+Several security issues (CVEs CVE-2023-40257, CVE-2023-40258, and CVE-2023-40259)
+were identified in the extended `rpcauth` wallet-restriction syntax, which is
+intended to enable semi-trusted local applications using the Bitcoin Knots API to
+access only specific wallets (or none at all) and not others. The full details of
+these issues will be disclosed at a future time, but they have all been fixed in
+this release.
+
 P2P and network changes
 -----------------------
+
+- To address a potential denial-of-service, the logic to download headers from peers
+  has been reworked.  This is particularly relevant for nodes starting up for the
+  first time (or for nodes which are starting up after being offline for a long time).
+
+  Whenever headers are received from a peer that have a total chainwork that is either
+  less than the node's `-minimumchainwork` value or is sufficiently below the work at
+  the node's tip, a "presync" phase will begin, in which the node will download the
+  peer's headers and verify the cumulative work on the peer's chain, prior to storing
+  those headers permanently. Once that cumulative work is verified to be sufficiently high,
+  the headers will be redownloaded from that peer and fully validated and stored.
+
+  This may result in initial headers sync taking longer for new nodes starting up for
+  the first time, both because the headers will be downloaded twice, and because the effect
+  of a peer disconnecting during the presync phase (or while the node's best headers chain has less
+  than `-minimumchainwork`), will result in the node needing to use the headers presync mechanism
+  with the next peer as well (downloading the headers twice, again). (#25717)
 
 - Transactions of non-witness size 65 and above are now allowed by mempool
   and relay policy. This is to better reflect the actual afforded protections
   against CVE-2017-12842 and open up additional use-cases of smaller transaction sizes. (#26265)
 
+- With I2P connections, a new, transient address is used for each outbound
+  connection if `-i2pacceptincoming=0`. (#25355)
+
+- A new net permission `forceinbound` (set with `-whitelist=forceinbound@...`
+  or `-whitebind=forceinbound@...`) is introduced that extends `noban` permissions.
+  Inbound connections from hosts protected by `forceinbound` will now be more
+  likely to connect even if `maxconnections` is reached and the node's inbound
+  slots are full. This is achieved by attempting to force the eviction of a random,
+  inbound, otherwise unprotected peer. (#27600)
+
+- The `-datacarriersize` policy limit has been updated to match newer style datacarrier
+  transactions. (#28408)
+
+- An additional `-datacarriercost` option has also been added to avoid giving the "segwit
+  discount" to aribitrary data (and can be increased to require datacarrier transactions
+  to pay higher fees).
+
 New RPCs
 --------
 
-- The scanblocks RPC returns the relevant blockhashes from a set of descriptors by
-  scanning all blockfilters in the given range. It can be used in combination with
-  the getblockheader and rescanblockchain RPCs to achieve fast wallet rescans. Note
-  that this functionality can only be used if a compact block filter index
-  (-blockfilterindex=1) has been constructed by the node. (#23549)
+- A new `getprioritisedtransactions` RPC has been added. It returns a map of all fee deltas created by the
+  user with prioritisetransaction, indexed by txid. The map also indicates whether each transaction is
+  present in the mempool.
 
 Updated RPCs
 ------------
-
-- All JSON-RPC methods accept a new [named
-  parameter](JSON-RPC-interface.md#parameter-passing) called `args` that can
-  contain positional parameter values. This is a convenience to allow some
-  parameter values to be passed by name without having to name every value. The
-  python test framework and `bitcoin-cli` tool both take advantage of this, so
-  for example:
-
-```sh
-bitcoin-cli -named createwallet wallet_name=mywallet load_on_startup=1
-```
-
-Can now be shortened to:
-
-```sh
-bitcoin-cli -named createwallet mywallet load_on_startup=1
-```
 
 - The `verifychain` RPC will now return `false` if the checks didn't fail,
   but couldn't be completed at the desired depth and level. This could be due
@@ -99,6 +130,35 @@ bitcoin-cli -named createwallet mywallet load_on_startup=1
 - `finalizepsbt` is now able to finalize a transaction with inputs spending Miniscript-compatible
   P2WSH scripts. (#24149)
 
+- The `-deprecatedrpc=softforks` configuration option has been removed.  The
+  RPC `getblockchaininfo` no longer returns the `softforks` field, which was
+  previously deprecated in 23.0. (#23508) Information on soft fork status is
+  now only available via the `getdeploymentinfo` RPC.
+
+- The `deprecatedrpc=exclude_coinbase` configuration option has been removed.
+  The `receivedby` RPCs (`listreceivedbyaddress`, `listreceivedbylabel`,
+  `getreceivedbyaddress` and `getreceivedbylabel`) now always return results
+  accounting for received coins from coinbase outputs, without an option to
+  change that behaviour. Excluding coinbases was previously deprecated in 23.0.
+  (#25171)
+
+- The `deprecatedrpc=fees` configuration option has been removed. The top-level
+  fee fields `fee`, `modifiedfee`, `ancestorfees` and `descendantfees` are no
+  longer returned by RPCs `getmempoolentry`, `getrawmempool(verbose=true)`,
+  `getmempoolancestors(verbose=true)` and `getmempooldescendants(verbose=true)`.
+  The same fee fields can be accessed through the `fees` object in the result.
+  The top-level fee fields were previously deprecated in 23.0. (#25204)
+
+- The `getpeerinfo` RPC has been updated with a new `presynced_headers` field,
+  indicating the progress on the presync phase mentioned in the
+  "P2P and network changes" section above.
+
+- RPC `disconnectnode` now accepts a subnet into `address` argument. (#26576)
+
+- The output from `getmempoolinfo` is extended to include a `rbf_policy` key
+  briefly describing the current replace-by-fee policy ("never", "optin", or
+  "always").
+
 Changes to wallet related RPCs can be found in the Wallet section below.
 
 Build System
@@ -114,10 +174,7 @@ Updated settings
 
 - If the `-checkblocks` or `-checklevel` options are explicitly provided by the
 user, but the verification checks cannot be completed due to an insufficient
-dbcache, Bitcoin Core will now return an error at startup. (#25574)
-
-- Ports specified in `-port` and `-rpcport` options are now validated at startup.
-  Values that previously worked and were considered valid can now result in errors. (#22087)
+dbcache, Bitcoin Knots will now return an error at startup. (#25574)
 
 - Setting `-blocksonly` will now reduce the maximum mempool memory
   to 5MB (users may still use `-maxmempool` to override). Previously,
@@ -137,20 +194,14 @@ New settings
 ------------
 
 - The `shutdownnotify` option is used to specify a command to execute synchronously
-before Bitcoin Core has begun its shutdown sequence. (#23395)
+  before Bitcoin Knots has begun its shutdown sequence. (#23395)
 
+- To assist in controlling access to the RPC "cookie" file on multiuser systems, a new
+  `rpccookieperms` setting has been added to set the file permissions mode before
+  writing the access token.
 
 Wallet
 ------
-
-- The `minconf` option, which allows a user to specify the minimum number
-of confirmations a UTXO being spent has, and the `maxconf` option,
-which allows specifying the maximum number of confirmations, have been
-added to the following RPCs in #25375:
-  - `fundrawtransaction`
-  - `send`
-  - `walletcreatefundedpsbt`
-  - `sendall`
 
 - Added a new `next_index` field in the response in `listdescriptors` to
   have the same format as `importdescriptors` (#26194)
@@ -187,18 +238,94 @@ added to the following RPCs in #25375:
 
 - Descriptor wallets can now spend coins sent to P2WSH Miniscript descriptors. (#24149)
 
+- The `-walletrbf` startup option will now default to `true`. The
+  wallet will now default to opt-in RBF on transactions that it creates. (#25610)
+
+- The `replaceable` option for the `createrawtransaction` and
+  `createpsbt` RPCs will now default to `true`. Transactions created
+  with these RPCs will default to having opt-in RBF enabled. (#25610)
+
+- The `wsh()` output descriptor was extended with Miniscript support. You can import Miniscript
+  descriptors for P2WSH in a watchonly wallet to track coins, but you can't spend from them using
+  the Bitcoin Core wallet yet.
+  You can find more about Miniscript on the [reference website](https://bitcoin.sipa.be/miniscript/). (#24148)
+
+- The `tr()` output descriptor now supports multisig scripts through the `multi_a()` and
+  `sortedmulti_a()` functions. (#24043)
+
+- The `importdescriptors` RPC can now be used to import BIP 93 (codex32) seeds. (#27351)
+
+- To help prevent fingerprinting transactions created by the Bitcoin Core wallet, change output
+  amounts are now randomized. (#24494)
+
+- The `listsinceblock`, `listtransactions` and `gettransaction` output now contain a new
+  `parent_descs` field for every "receive" entry. (#25504)
+
+- A new optional `include_change` parameter was added to the `listsinceblock` command. (#25504)
+
+- RPC `importaddress` now supports watch-only descriptor wallets.
+
+- The `walletprocesspsbt` method will now return the raw transaction as a new `hex` key
+  in the result, when the PSBT has been completed. (#28414)
+
+- The result of RPC `getaddressinfo` adds an `isactive` key which can be used to determine if
+  the address is derived from the currently active wallet seed. (#27216)
+
+- RPC `getreceivedbylabel` now returns an error, "Label not found
+  in wallet" (-4), if the label is not in the address book. (#25122)
+
+Migrating Legacy Wallets to Descriptor Wallets
+---------------------------------------------
+
+An experimental RPC `migratewallet` has been added to migrate Legacy (non-descriptor) wallets to
+Descriptor wallets. More information about the migration process is available in the
+[documentation](https://github.com/bitcoin/bitcoin/blob/master/doc/managing-wallets.md#migrating-legacy-wallets-to-descriptor-wallets).
+
 GUI changes
 -----------
 
 - The "Mask values" is a persistent option now. (gui#701)
+
 - The "Mask values" option affects the "Transaction" view now, in addition to the
   "Overview" one. (gui#708)
+
+- A new menu item to restore a wallet from a backup file has been added (gui#471).
+
+- Configuration changes made in the bitcoin GUI (such as the pruning setting,
+proxy settings, UPNP preferences) are now saved to `<datadir>/settings.json`
+file rather than to the Qt settings backend (windows registry or unix desktop
+config files), so these settings will now apply to bitcoind, instead of being
+ignored. (#15936, gui#602)
+
+- Also, the interaction between GUI settings and `bitcoin.conf` settings is
+simplified. Settings from `bitcoin.conf` are now displayed normally in the GUI
+settings dialog, instead of in a separate warning message ("Options set in this
+dialog are overridden by the configuration file: -setting=value"). And these
+settings can now be edited because `settings.json` values take precedence over
+`bitcoin.conf` values. (#15936)
 
 REST
 ----
 
 - A new `/rest/deploymentinfo` endpoint has been added for fetching various
   state info regarding deployments of consensus changes. (#25412)
+
+- The `/headers/` and `/blockfilterheaders/` endpoints have been updated to use
+  a query parameter instead of path parameter to specify the result count. The
+  count parameter is now optional, and defaults to 5 for both endpoints. The old
+  endpoints are still functional, and have no documented behaviour change.
+
+  For `/headers`, use
+  `GET /rest/headers/<BLOCK-HASH>.<bin|hex|json>?count=<COUNT=5>`
+  instead of
+  `GET /rest/headers/<COUNT>/<BLOCK-HASH>.<bin|hex|json>` (deprecated)
+
+  For `/blockfilterheaders/`, use
+  `GET /rest/blockfilterheaders/<FILTERTYPE>/<BLOCK-HASH>.<bin|hex|json>?count=<COUNT=5>`
+  instead of
+  `GET /rest/blockfilterheaders/<FILTERTYPE>/<COUNT>/<BLOCK-HASH>.<bin|hex|json>` (deprecated)
+
+  (#24098)
 
 Binary verification
 ----
@@ -220,120 +347,188 @@ RPC
 - The JSON-RPC server now rejects requests where a parameter is specified multiple
   times with the same name, instead of silently overwriting earlier parameter values
   with later ones. (#26628)
+
 - RPC `listsinceblock` now accepts an optional `label` argument
   to fetch incoming transactions having the specified label. (#25934)
+
 - Previously `setban`, `addpeeraddress`, `walletcreatefundedpsbt`, methods
   allowed non-boolean and non-null values to be passed as boolean parameters.
   Any string, number, array, or object value that was passed would be treated
   as false. After this change, passing any value except `true`, `false`, or
   `null` now triggers a JSON value is not of expected type error. (#26213)
 
+- The `deriveaddresses`, `getdescriptorinfo`, `importdescriptors` and `scantxoutset` commands now
+  accept Miniscript expression within a `wsh()` descriptor. (#24148)
+
+- The `getaddressinfo`, `decodescript`, `listdescriptors` and `listunspent` commands may now output
+  a Miniscript descriptor inside a `wsh()` where a `wsh(raw())` descriptor was previously returned. (#24148)
+
 Credits
 =======
 
 Thanks to everyone who directly contributed to this release:
 
+- /dev/fd0
 - 0xb10c
 - 721217.xyz
-- @RandyMcMillan
+- Adam Jonas
+- akankshakashyap
+- Ali Sherief
 - amadeuszpawlik
 - Amiti Uttarwar
+- Andreas Kouloumos
 - Andrew Chow
 - Andrew Toth
 - Anthony Towns
 - Antoine Poinsot
+- Antoine Riard
 - Aurèle Oulès
+- avirgovi
+- Ayush Sharma
+- Baas
 - Ben Woosley
 - Bitcoin Hodler
+- BrokenProgrammer
 - brunoerg
+- brydinh
 - Bushstar
+- Calvin Kim
+- CAnon
 - Carl Dong
+- chinggg
 - Chris Geihsler
 - Cory Fields
+- Daniel Kraft
+- Daniela Brozzoni
+- darosior
+- Dave Scotese
+- David Bakin
 - David Gumberg
 - dergoegge
 - Dhruv Mehta
+- Dimitri
 - Dimitris Tsapakidis
+- dontbyte
 - dougEfish
 - Douglas Chimento
+- Duncan Dean
 - ekzyis
 - Elichai Turkel
 - Ethan Heilman
+- eugene
+- Eunoia
 - Fabian Jahr
 - FractalEncrypt
 - furszy
 - Gleb Naumenko
 - glozow
 - Greg Sanders
+- Greg Weber
+- Gregory Sanders
+- gruve-p
 - Hennadii Stepanov
 - hernanmarino
+- hiago
+- Igor Bubelov
 - ishaanam
 - ismaelsadeeq
+- Jacob P.
+- Jadi
 - James O'Beirne
-- jdjkelly@gmail.com
+- Janna
+- Jarol Rodriguez
 - Jeff Ruane
 - Jeffrey Czyz
+- Jeremy Rand
 - Jeremy Rubin
 - Jesse Barton
+- jessebarton
 - João Barbosa
 - JoaoAJMatos
 - John Moffett
+- John Newbery
 - Jon Atack
 - Jonas Schnelli
 - jonatack
 - Joshua Kelly
+- Josiah Baker
 - josibake
 - Juan Pablo Civile
+- Karl-Johan Alm
 - kdmukai
+- KevinMusgrave
+- Kiminuo
 - klementtan
-- Kolby ML
+- Kolby Moroz Liebl
 - kouloumos
 - Kristaps Kaupe
-- laanwj
 - Larry Ruane
 - Leonardo Araujo
 - Leonardo Lazzaro
 - Luke Dashjr
 - MacroFake
-- MarcoFalke
+- Marnix
 - Martin Leitner-Ankerl
 - Martin Zumsande
 - Matt Whitlock
 - Matthew Zipkin
+- Michael Dietz
+- Michael Folkson
 - Michael Ford
 - Miles Liu
 - mruddy
+- Murch
 - Murray Nesbitt
+- mutatrum
 - muxator
 - omahs
+- Oskar Mendel
+- Pablo Greco
 - pablomartin4btc
-- Pasta
+- pasta
+- Patrick Strateman
+- Pavol Rusnak
+- Peter Bushnell
+- phyBrackets
 - Pieter Wuille
+- practicalswift
 - Pttn
 - Randall Naar
+- Randy McMillan
 - Riahiamirreza
-- roconnor-blockstream
+- Robert Spigler
 - Russell O'Connor
 - Ryan Ofsky
 - S3RK
+- Samer Afach
 - Sebastian Falbesoner
 - Seibart Nedor
+- Shashwat
 - sinetek
 - Sjors Provoost
 - Skuli Dulfari
+- Smlep
+- sogoagain
 - SomberNight
 - Stacie Waleyko
 - stickies-v
 - stratospher
+- Stéphan Vuylsteke
+- Suhail Saqan
 - Suhas Daftuar
 - Suriyaa Sundararuban
+- t-bast
+- TakeshiMusgrave
 - TheCharlatan
 - Vasil Dimov
 - Vasil Stoyanov
 - virtu
+- W. J. van der Laan
 - w0xlt
+- whiteh0rse
 - willcl-ark
-- yancy
+- William Casarin
+- Yancy Ribbens
 - Yusuf Sahin HAMZA
 
 As well as to everyone that helped with translations on

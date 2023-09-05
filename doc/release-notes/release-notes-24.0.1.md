@@ -220,14 +220,10 @@ Wallet
 - To help prevent fingerprinting transactions created by the Bitcoin Core wallet, change output
   amounts are now randomized. (#24494)
 
-- The `listtransactions`, `gettransaction`, and `listsinceblock`
-  RPC methods now include a wtxid field (hash of serialized transaction,
-  including witness data) for each transaction. (#24198)
-
 - The `listsinceblock`, `listtransactions` and `gettransaction` output now contain a new
   `parent_descs` field for every "receive" entry. (#25504)
 
-- A new optional `include_change` parameter was added to the `listsinceblock` command.
+- A new optional `include_change` parameter was added to the `listsinceblock` command. (#25504)
 
 - RPC `getreceivedbylabel` now returns an error, "Label not found
   in wallet" (-4), if the label is not in the address book. (#25122)
