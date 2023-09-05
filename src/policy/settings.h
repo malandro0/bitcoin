@@ -8,5 +8,6 @@
 
 extern unsigned int nBytesPerSigOp;
 extern unsigned int nBytesPerSigOpStrict;
+extern bool g_datacarrier_fullcount;
 
 #endif // BITCOIN_POLICY_SETTINGS_H
