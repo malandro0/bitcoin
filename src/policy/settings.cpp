@@ -9,3 +9,4 @@
 
 unsigned int nBytesPerSigOp = DEFAULT_BYTES_PER_SIGOP;
 unsigned int nBytesPerSigOpStrict = DEFAULT_BYTES_PER_SIGOP_STRICT;
+bool g_datacarrier_fullcount = DEFAULT_DATACARRIER_FULLCOUNT;

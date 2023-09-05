@@ -5,9 +5,13 @@
 
 #include <script/script.h>
 
+#include <consensus/consensus.h>
+#include <primitives/transaction.h>
+#include <script/interpreter.h>
 #include <util/strencodings.h>
 
 #include <string>
+#include <utility>
 
 std::string GetOpName(opcodetype opcode)
 {
@@ -278,6 +282,93 @@ bool CScript::HasValidOps() const
         }
     }
     return true;
+}
+
+size_t CScript::DatacarrierBytes() const
+{
+    if (IsUnspendable()) {
+        return size();
+    }
+
+    size_t counted{0};
+    opcodetype opcode, last_opcode{OP_INVALIDOPCODE};
+    std::vector<unsigned char> push_data;
+    unsigned int inside_noop{0};
+    CScript::const_iterator opcode_it = begin(), data_began = begin();
+    for (CScript::const_iterator it = begin(); it < end(); last_opcode = opcode) {
+        opcode_it = it;
+        if (!GetOp(it, opcode, push_data)) {
+            // Invalid scripts are necessarily all data
+            return size();
+        }
+
+        // Match OP_FALSE OP_IF
+        if (inside_noop) {
+            switch (opcode) {
+            case OP_IF: case OP_NOTIF:
+                ++inside_noop;
+                break;
+            case OP_ENDIF:
+                if (0 == --inside_noop) {
+                    counted += it - data_began + 1;
+                }
+                break;
+            default: /* do nothing */;
+            }
+        } else if (opcode == OP_IF && last_opcode == OP_FALSE) {
+            inside_noop = 1;
+            data_began = opcode_it;
+        // Match <data> OP_DROP
+        } else if (opcode <= OP_PUSHDATA4) {
+            data_began = opcode_it;
+        } else if (opcode == OP_DROP && last_opcode <= OP_PUSHDATA4) {
+            counted += it - data_began;
+        }
+    }
+    return counted;
+}
+
+std::pair<CScript, unsigned int> GetScriptForTransactionInput(CScript prevScript, const CTxIn& txin)
+{
+    bool p2sh = false;
+    if (prevScript.IsPayToScriptHash()) {
+        std::vector <std::vector<unsigned char> > stack;
+        if (!EvalScript(stack, txin.scriptSig, SCRIPT_VERIFY_NONE, BaseSignatureChecker(), SigVersion::BASE)) {
+            return std::make_pair(CScript(), 0);
+        }
+        if (stack.empty()) {
+            return std::make_pair(CScript(), 0);
+        }
+        prevScript = CScript(stack.back().begin(), stack.back().end());
+        p2sh = true;
+    }
+
+    int witnessversion = 0;
+    std::vector<unsigned char> witnessprogram;
+
+    if (!prevScript.IsWitnessProgram(witnessversion, witnessprogram)) {
+        return std::make_pair(prevScript, WITNESS_SCALE_FACTOR);
+    }
+
+    if (witnessversion == 0 && witnessprogram.size() == WITNESS_V0_SCRIPTHASH_SIZE) {
+        auto& script_data = txin.scriptWitness.stack.back();
+        prevScript = CScript(script_data.begin(), script_data.end());
+        return std::make_pair(prevScript, 1);
+    }
+
+    if (witnessversion == 1 && witnessprogram.size() == WITNESS_V1_TAPROOT_SIZE && !p2sh) {
+        Span stack{txin.scriptWitness.stack};
+        if (stack.size() >= 2 && !stack.back().empty() && stack.back()[0] == ANNEX_TAG) {
+            SpanPopBack(stack);
+        }
+        if (stack.size() >= 2) {
+            SpanPopBack(stack);  // Ignore control block
+            prevScript = CScript(stack.back().begin(), stack.back().end());
+            return std::make_pair(prevScript, 1);
+        }
+    }
+
+    return std::make_pair(CScript(), 0);
 }
 
 bool GetScriptOp(CScriptBase::const_iterator& pc, CScriptBase::const_iterator end, opcodetype& opcodeRet, std::vector<unsigned char>* pvchRet)

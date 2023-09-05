@@ -18,7 +18,10 @@
 #include <stdint.h>
 #include <string.h>
 #include <string>
+#include <utility>
 #include <vector>
+
+class CTxIn;
 
 // Maximum number of bytes pushable to the stack
 static const unsigned int MAX_SCRIPT_ELEMENT_SIZE = 520;
@@ -551,6 +554,8 @@ public:
         return (size() > 0 && *begin() == OP_RETURN) || (size() > MAX_SCRIPT_SIZE);
     }
 
+    size_t DatacarrierBytes() const;
+
     void clear()
     {
         // The default prevector::clear() does not release memory
@@ -558,6 +563,8 @@ public:
         shrink_to_fit();
     }
 };
+
+std::pair<CScript, unsigned int> GetScriptForTransactionInput(CScript prevScript, const CTxIn&);
 
 struct CScriptWitness
 {
