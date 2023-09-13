@@ -98,6 +98,7 @@ private:
     const int64_t sigOpCost;        //!< Total sigop cost
     const size_t nModSize;          //!< Cached modified size for priority
     CAmount m_modified_fee;         //!< Used for determining the priority of the transaction for mining in a block
+    const int32_t m_extra_weight; //!< Policy-only additional transaction weight beyond nTxWeight
     LockPoints lockPoints;          //!< Track the height and time at which tx was final
 
     // Information about descendants of this transaction that are in the
@@ -117,6 +118,7 @@ public:
     CTxMemPoolEntry(const CTransactionRef& tx, CAmount fee,
                     int64_t time, double entry_priority, unsigned int entry_height,
                     CAmount in_chain_input_value, bool spends_coinbase,
+                    int32_t extra_weight,
                     int64_t sigops_cost, LockPoints lp)
         : tx{tx},
           nFee{fee},
@@ -133,6 +135,7 @@ public:
           sigOpCost{sigops_cost},
           nModSize{CalculateModifiedSize(*tx, GetTxSize())},
           m_modified_fee{nFee},
+          m_extra_weight{extra_weight},
           lockPoints{lp},
           nSizeWithDescendants{GetTxSize()},
           nModFeesWithDescendants{nFee},
@@ -159,7 +162,7 @@ public:
     const CAmount& GetFee() const { return nFee; }
     size_t GetTxSize() const
     {
-        return GetVirtualTransactionSize(nTxWeight, sigOpCost, ::nBytesPerSigOp);
+        return GetVirtualTransactionSize(nTxWeight + m_extra_weight, sigOpCost, ::nBytesPerSigOp);
     }
     size_t GetTxWeight() const { return nTxWeight; }
     std::chrono::seconds GetTime() const { return std::chrono::seconds{nTime}; }
