@@ -600,6 +600,7 @@ static RPCHelpMan getblocktemplate()
     std::set<std::string> setClientRules;
     Chainstate& active_chainstate = chainman.ActiveChainstate();
     CChain& active_chain = active_chainstate.m_chain;
+    bool skip_validity_test{false};
     if (!request.params[0].isNull())
     {
         const UniValue& oparam = request.params[0].get_obj();
@@ -648,6 +649,14 @@ static RPCHelpMan getblocktemplate()
             for (unsigned int i = 0; i < aClientRules.size(); ++i) {
                 const UniValue& v = aClientRules[i];
                 setClientRules.insert(v.get_str());
+            }
+        }
+
+        const UniValue& client_caps = find_value(oparam, "capabilities");
+        if (client_caps.isArray()) {
+            for (unsigned int i = 0; i < client_caps.size(); ++i) {
+                const UniValue& v = client_caps[i];
+                if (v.get_str() == "skip_validity_test") skip_validity_test = true;
             }
         }
     }
@@ -744,8 +753,11 @@ static RPCHelpMan getblocktemplate()
         nStart = GetTime();
 
         // Create new block
+        BlockAssembler::Options options;
+        ApplyArgsManOptions(gArgs, options);
+        if (skip_validity_test) options.test_block_validity = false;
         CScript scriptDummy = CScript() << OP_TRUE;
-        pblocktemplate = BlockAssembler{active_chainstate, &mempool}.CreateNewBlock(scriptDummy);
+        pblocktemplate = BlockAssembler{active_chainstate, &mempool, options}.CreateNewBlock(scriptDummy);
         if (!pblocktemplate)
             throw JSONRPCError(RPC_OUT_OF_MEMORY, "Out of memory");
 
