@@ -234,7 +234,6 @@ BITCOIN_CORE_H = \
   node/mempool_persist_args.h \
   node/miner.h \
   node/mini_miner.h \
-  node/minisketchwrapper.h \
   node/peerman_args.h \
   node/psbt.h \
   node/transaction.h \
@@ -434,7 +433,6 @@ libbitcoin_node_a_SOURCES = \
   node/mempool_persist_args.cpp \
   node/miner.cpp \
   node/mini_miner.cpp \
-  node/minisketchwrapper.cpp \
   node/peerman_args.cpp \
   node/psbt.cpp \
   node/transaction.cpp \
@@ -1132,8 +1130,6 @@ endif
 	 $(HEXDUMP) -v -e '8/1 "0x%02x, "' -e '"\n"' $< | $(SED) -e 's/0x  ,//g' && \
 	 echo "};"; \
 	} > "$@.new" && mv -f "$@.new" "$@"
-
-include Makefile.minisketch.include
 
 if EMBEDDED_LEVELDB
 include Makefile.crc32c.include
