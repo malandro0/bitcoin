@@ -91,7 +91,7 @@ void CTxMemPool::UpdateForDescendants(txiter updateIt, cacheMap& cachedDescendan
             // Don't directly remove the transaction here -- doing so would
             // invalidate iterators in cachedDescendants. Mark it for removal
             // by inserting into descendants_to_remove.
-            if (descendant.GetCountWithAncestors() > uint64_t(m_limits.ancestor_count) || descendant.GetSizeWithAncestors() > m_limits.ancestor_size_vbytes) {
+            if (descendant.GetCountWithAncestors() > uint64_t(m_opts.limits.ancestor_count) || descendant.GetSizeWithAncestors() > m_opts.limits.ancestor_size_vbytes) {
                 descendants_to_remove.insert(descendant.GetTx().GetHash());
             }
         }
@@ -203,17 +203,17 @@ bool CTxMemPool::CheckPackageLimits(const Package& package,
     size_t pack_count = package.size();
 
     // Package itself is busting mempool limits; should be rejected even if no staged_ancestors exist
-    if (pack_count > static_cast<uint64_t>(m_limits.ancestor_count)) {
-        errString = strprintf("package count %u exceeds ancestor count limit [limit: %u]", pack_count, m_limits.ancestor_count);
+    if (pack_count > static_cast<uint64_t>(m_opts.limits.ancestor_count)) {
+        errString = strprintf("package count %u exceeds ancestor count limit [limit: %u]", pack_count, m_opts.limits.ancestor_count);
         return false;
-    } else if (pack_count > static_cast<uint64_t>(m_limits.descendant_count)) {
-        errString = strprintf("package count %u exceeds descendant count limit [limit: %u]", pack_count, m_limits.descendant_count);
+    } else if (pack_count > static_cast<uint64_t>(m_opts.limits.descendant_count)) {
+        errString = strprintf("package count %u exceeds descendant count limit [limit: %u]", pack_count, m_opts.limits.descendant_count);
         return false;
-    } else if (total_vsize > m_limits.ancestor_size_vbytes) {
-        errString = strprintf("package size %u exceeds ancestor size limit [limit: %u]", total_vsize, m_limits.ancestor_size_vbytes);
+    } else if (total_vsize > m_opts.limits.ancestor_size_vbytes) {
+        errString = strprintf("package size %u exceeds ancestor size limit [limit: %u]", total_vsize, m_opts.limits.ancestor_size_vbytes);
         return false;
-    } else if (total_vsize > m_limits.descendant_size_vbytes) {
-        errString = strprintf("package size %u exceeds descendant size limit [limit: %u]", total_vsize, m_limits.descendant_size_vbytes);
+    } else if (total_vsize > m_opts.limits.descendant_size_vbytes) {
+        errString = strprintf("package size %u exceeds descendant size limit [limit: %u]", total_vsize, m_opts.limits.descendant_size_vbytes);
         return false;
     }
 
@@ -223,8 +223,8 @@ bool CTxMemPool::CheckPackageLimits(const Package& package,
             std::optional<txiter> piter = GetIter(input.prevout.hash);
             if (piter) {
                 staged_ancestors.insert(**piter);
-                if (staged_ancestors.size() + package.size() > static_cast<uint64_t>(m_limits.ancestor_count)) {
-                    errString = strprintf("too many unconfirmed parents [limit: %u]", m_limits.ancestor_count);
+                if (staged_ancestors.size() + package.size() > static_cast<uint64_t>(m_opts.limits.ancestor_count)) {
+                    errString = strprintf("too many unconfirmed parents [limit: %u]", m_opts.limits.ancestor_count);
                     return false;
                 }
             }
@@ -234,7 +234,7 @@ bool CTxMemPool::CheckPackageLimits(const Package& package,
     // considered together must be within limits even if they are not interdependent. This may be
     // stricter than the limits for each individual transaction.
     const auto ancestors{CalculateAncestorsAndCheckLimits(total_vsize, package.size(),
-                                                          staged_ancestors, m_limits)};
+                                                          staged_ancestors, m_opts.limits)};
     // It's possible to overestimate the ancestor/descendant totals.
     if (!ancestors.has_value()) errString = "possibly " + util::ErrorString(ancestors).original;
     return ancestors.has_value();
@@ -401,18 +401,7 @@ void CTxMemPoolEntry::UpdateAncestorState(int32_t modifySize, CAmount modifyFee,
 }
 
 CTxMemPool::CTxMemPool(const Options& opts)
-    : m_check_ratio{opts.check_ratio},
-      m_max_size_bytes{opts.max_size_bytes},
-      m_expiry{opts.expiry},
-      m_incremental_relay_feerate{opts.incremental_relay_feerate},
-      m_min_relay_feerate{opts.min_relay_feerate},
-      m_dust_relay_feerate{opts.dust_relay_feerate},
-      m_permit_bare_multisig{opts.permit_bare_multisig},
-      m_max_datacarrier_bytes{opts.max_datacarrier_bytes},
-      m_require_standard{opts.require_standard},
-      m_full_rbf{opts.full_rbf},
-      m_persist_v1_dat{opts.persist_v1_dat},
-      m_limits{opts.limits}
+    : m_opts{opts}
 {
 }
 
@@ -656,9 +645,9 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
 
 void CTxMemPool::check(const CCoinsViewCache& active_coins_tip, int64_t spendheight) const
 {
-    if (m_check_ratio == 0) return;
+    if (m_opts.check_ratio == 0) return;
 
-    if (GetRand(m_check_ratio) >= 1) return;
+    if (GetRand(m_opts.check_ratio) >= 1) return;
 
     AssertLockHeld(::cs_main);
     LOCK(cs);
@@ -1123,12 +1112,12 @@ CFeeRate CTxMemPool::GetMinFee(size_t sizelimit) const {
         rollingMinimumFeeRate = rollingMinimumFeeRate / pow(2.0, (time - lastRollingFeeUpdate) / halflife);
         lastRollingFeeUpdate = time;
 
-        if (rollingMinimumFeeRate < (double)m_incremental_relay_feerate.GetFeePerK() / 2) {
+        if (rollingMinimumFeeRate < (double)m_opts.incremental_relay_feerate.GetFeePerK() / 2) {
             rollingMinimumFeeRate = 0;
             return CFeeRate(0);
         }
     }
-    return std::max(CFeeRate(llround(rollingMinimumFeeRate)), m_incremental_relay_feerate);
+    return std::max(CFeeRate(llround(rollingMinimumFeeRate)), m_opts.incremental_relay_feerate);
 }
 
 void CTxMemPool::trackPackageRemoved(const CFeeRate& rate) {
@@ -1152,7 +1141,7 @@ void CTxMemPool::TrimToSize(size_t sizelimit, std::vector<COutPoint>* pvNoSpends
         // to have 0 fee). This way, we don't allow txn to enter mempool with feerate
         // equal to txn which were removed with no block in between.
         CFeeRate removed(it->GetModFeesWithDescendants(), it->GetSizeWithDescendants());
-        removed += m_incremental_relay_feerate;
+        removed += m_opts.incremental_relay_feerate;
         trackPackageRemoved(removed);
         maxFeeRateRemoved = std::max(maxFeeRateRemoved, removed);
 
