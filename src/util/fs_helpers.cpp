@@ -297,15 +297,45 @@ bool TryCreateDirectories(const fs::path& p)
 
 std::string PermsToString(fs::perms p)
 {
-    return std::string((p & fs::perms::owner_read)   != fs::perms::none ? "r" : "-") +
-           std::string((p & fs::perms::owner_write)  != fs::perms::none ? "w" : "-") +
-           std::string((p & fs::perms::owner_exec)   != fs::perms::none ? "x" : "-") +
-           std::string((p & fs::perms::group_read)   != fs::perms::none ? "r" : "-") +
-           std::string((p & fs::perms::group_write)  != fs::perms::none ? "w" : "-") +
-           std::string((p & fs::perms::group_exec)   != fs::perms::none ? "x" : "-") +
-           std::string((p & fs::perms::others_read)  != fs::perms::none ? "r" : "-") +
-           std::string((p & fs::perms::others_write) != fs::perms::none ? "w" : "-") +
-           std::string((p & fs::perms::others_exec)  != fs::perms::none ? "x" : "-");
+    char s[] = "----------";
+
+    if ((p & fs::perms::owner_read)  != fs::perms::none) s[1] = 'r';
+    if ((p & fs::perms::owner_write) != fs::perms::none) s[2] = 'w';
+    if ((p & fs::perms::owner_exec)  != fs::perms::none) {
+        if ((p & fs::perms::set_uid) != fs::perms::none) {
+            s[3] = 's';
+        } else {
+            s[3] = 'x';
+        }
+    } else if ((p & fs::perms::set_uid) != fs::perms::none) {
+        s[3] = 'S';
+    }
+
+    if ((p & fs::perms::group_read)  != fs::perms::none) s[4] = 'r';
+    if ((p & fs::perms::group_write) != fs::perms::none) s[5] = 'w';
+    if ((p & fs::perms::group_exec)  != fs::perms::none) {
+        if ((p & fs::perms::set_gid) != fs::perms::none) {
+            s[6] = 's';
+        } else {
+            s[6] = 'x';
+        }
+    } else if ((p & fs::perms::set_gid) != fs::perms::none) {
+        s[6] = 'S';
+    }
+
+    if ((p & fs::perms::others_read)  != fs::perms::none) s[7] = 'r';
+    if ((p & fs::perms::others_write) != fs::perms::none) s[8] = 'w';
+    if ((p & fs::perms::others_exec)  != fs::perms::none) {
+        if ((p & fs::perms::sticky_bit) != fs::perms::none) {
+            s[9] = 't';
+        } else {
+            s[9] = 'x';
+        }
+    } else if ((p & fs::perms::sticky_bit) != fs::perms::none) {
+        s[9] = 'T';
+    }
+
+    return s;
 }
 
 unsigned int PermsToOctal(fs::perms p)
