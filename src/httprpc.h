@@ -11,7 +11,7 @@
 /** Default permissions for cookie file.
  * Differs from defaults derived from umask in util/system.cpp
  */
-const auto DEFAULT_COOKIE_PERMS{fs::perms::owner_read};
+const fs::perms DEFAULT_COOKIE_PERMS{fs::perms::owner_read};
 
 /** Start HTTP RPC subsystem.
  * Precondition; HTTP and RPC has been started.
