@@ -265,10 +265,6 @@ static bool InitRPCAuthentication()
         fs::perms cookie_perms{DEFAULT_COOKIE_PERMS};
         auto cookie_perms_arg{gArgs.GetArg("-rpccookieperms")};
         if (cookie_perms_arg) {
-#ifdef WIN32
-            LogPrintf("Unable to set unix file permissions on cookie via -rpccookieperms using Windows systems\n");
-            return false;
-#endif
             auto perms{ConvertPermsToOctal(*cookie_perms_arg)};
             if (!perms) {
                 LogPrintf("Invalid -rpccookieperms=%s; must be a 3 digit octal number (e.g. 400, 440 or 444).\n", *cookie_perms_arg);
